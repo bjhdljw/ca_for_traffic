@@ -17,22 +17,35 @@ def basic_figure():
     # plt.scatter(density, speed, linewidths=1)
     plt.show()
 
-def road_visualization(road):
+def road_visualization_dynamic(road):
 
     colors = ['white', 'blue', 'black']
     cmap = mpl.colors.ListedColormap(colors)
 
-    plt.figure(figsize=(10, 12))
-    plt.imshow(road.positionArray, cmap=cmap)
-    plt.axis('off')
-    plt.show()
+    plt.ion()
+    for _ in range(simulation_times):
+        plt.imshow(road.positionArray, cmap=cmap)
+        plt.axis('off')
+        plt.pause(0.2)
+        road.progress()
+    plt.ioff()
 
 if __name__ == '__main__':
 
-    # road = road.Road(80, 3)
-    # car = car.Car()
-    # car.new_car(road, 0, 1)
-    # road_visualization(road)
+    colors = ['white', 'blue', 'black']
+    cmap = mpl.colors.ListedColormap(colors)
 
-    basic_figure()
+    simulation_times = 100
+    lanes = 3
+    road_length = 80
+    new_car_speed = 1
+    new_car_position = 1
+    vmax = 3
+
+    road = road.Road(road_length, lanes)
+    car = car.Car()
+    car.new_car(road, new_car_speed, new_car_position)
+
+    road_visualization_dynamic(road)
+
 
