@@ -12,7 +12,7 @@ PROBSLOW = 0.1
 
 
 class Road(object):
-    def __init__(self, length, lanes, vmax, prob_in, islimit, limit_begin, limit_end, lane_for_st_figure):
+    def __init__(self, length, lanes, vmax, prob_in, islimit, limit_begin, limit_end, lane_for_st_figure, switch_lane_prob):
         self.length = length
         self.lanes = lanes
         self.positionArray = np.zeros((lanes + 2, length))
@@ -33,6 +33,8 @@ class Road(object):
         self.count_flow = 0
         self.travel_time = 0
         self.travel_speed = 0
+        self.switch_lane_prob = switch_lane_prob
+        self.switch_counter = 0
     def progress(self, speed):
         if not self.is_limit:
             limit_speed = self.vmax
@@ -43,10 +45,14 @@ class Road(object):
         speedCounter = self.speedCounter
         #中间量：只有减速步的时候用
         gap = np.zeros(positionArray.shape)
-        gap_position_temp = sys.maxint
+        left_change_condition = np.zeros(positionArray.shape)
+        right_change_condition = np.zeros(positionArray.shape)
+        left_change_real = np.zeros(positionArray.shape)
+        right_change_real = np.zeros(positionArray.shape)
         for i in range(1, positionArray.shape[0] - 1):
             # 计数器，第1辆车和第2辆车减速步特殊处理
             count = 1
+            gap_position_temp = sys.maxint
             for j in range(positionArray.shape[1] - 1, -1, -1):
                 '''加速步骤begin'''
                 if positionArray[i, j] == 1 and not self.is_limit:
@@ -59,6 +65,36 @@ class Road(object):
                     gap[i, j] = gap_position_temp - j
                     gap_position_temp = j
                 '''计算前车距离end'''
+                '''计算换道条件begin'''
+                if positionArray[i, j] == 1:
+                    if i == 1:
+                        change = True
+                        for r in range(j - self.vmax - 1, j):
+                            if positionArray[i + 1, r] == 1 :
+                                change = False
+                                break
+                        right_change_condition[i, j] = change
+                    elif i == self.lanes:
+                        change = True
+                        for l in range(j - self.vmax - 1, j):
+                            if positionArray[i - 1, l] == 1:
+                                change = False
+                                break
+                        left_change_condition[i, j] = change
+                    elif 1 < i < self.lanes:
+                        change_left = True
+                        change_right = True
+                        for l in range(j - self.vmax - 1, j):
+                            if positionArray[i - 1, l] == 1:
+                                change_left = False
+                                break
+                        for r in range(j - self.vmax - 1, j):
+                            if positionArray[i - 1, r] == 1:
+                                change_right = False
+                                break
+                        left_change_condition[i, j] = change_left
+                        right_change_condition[i, j] = change_right
+                '''计算换道条件end'''
                 '''减速步begin'''
                 if (positionArray[i, j] == 1):
                     if count == 1:
@@ -77,12 +113,56 @@ class Road(object):
                 if (positionArray[i, j] == 1 and random.uniform(0, 1) <= PROBSLOW):
                     speedArray[i, j] = max(speedArray[i, j] - 1, 0)
                 '''随机慢化步end'''
+                '''计算是否满足换道动机（即是否换道）begin'''
+                if positionArray[i, j] == 1:
+                    if i == 1:
+                        if min(speedArray[i, j] + 1, self.vmax) > gap[i, j] and right_change_condition[i, j] == 1 and random.uniform(0, 1) < self.switch_lane_prob:
+                            right_change_real[i, j] = 1
+                    elif i == self.lanes:
+                        if min(speedArray[i, j] + 1, self.vmax) > gap[i, j] and right_change_condition[i, j] == 1 and random.uniform(0, 1) < self.switch_lane_prob:
+                            right_change_real[i, j] = 1
+                        if min(speedArray[i, j] + 1, self.vmax) > gap[i, j] and left_change_condition[i, j] == 1 and random.uniform(0, 1) < self.switch_lane_prob:
+                            left_change_real[i, j] = 1
+                    elif 1 < i < self.lanes:
+                        if min(speedArray[i, j] + 1, self.vmax) > gap[i, j] and left_change_condition[i, j] == 1 and random.uniform(0, 1) < self.switch_lane_prob:
+                            left_change_real[i, j] = 1
+                '''计算是否满足换道动机（即是否换道）end'''
                 '''行程开始时间累计begin'''
                 if self.limit_begin <= j <= self.limit_end and speedCounter[i, j] != 0:
                     speedCounter[i, j] += 1
                 '''行程开始时间累计end'''
+            '''为时空图做准备begin'''
+            prepare_space_time(positionArray, self.lane_for_st_figure)
+            '''为时空图做准备begin'''
+        '''进行换道begin'''
+        for i in range(1, positionArray.shape[0] - 1):
+            for j in range(positionArray.shape[1] - 1, -1, -1):
+                if positionArray[i, j] == 1 and (left_change_real[i, j] == 1 or right_change_real[i, j] == 1):
+                    if i == 1:
+                        positionArray[i + 1, j] = 1
+                        speedArray[i + 1, j] = speedArray[i, j]
+                        speedCounter[i + 1, j] = speedCounter[i, j]
+                    elif 1 < i < self.lanes and left_change_real[i, j] == 1:
+                        positionArray[i - 1, j] = 1
+                        speedArray[i - 1, j] = speedArray[i, j]
+                        speedCounter[i - 1, j] = speedCounter[i, j]
+                    elif 1 < i < self.lanes:
+                        positionArray[i + 1, j] = positionArray[i, j]
+                        speedArray[i + 1, j] = speedArray[i, j]
+                        speedCounter[i + 1, j] = speedCounter[i, j]
+                    elif i == self.lanes:
+                        positionArray[i - 1, j] = positionArray[i, j]
+                        speedArray[i - 1, j] = speedArray[i, j]
+                        speedCounter[i - 1, j] = speedCounter[i, j]
+                    positionArray[i, j] = 0
+                    speedArray[i, j] = 0
+                    speedCounter[i, j] = 0
+                    self.switch_counter += 1
+        '''进行换道end'''
+        for i in range(1, positionArray.shape[0] - 1):
+            for j in range(positionArray.shape[1] - 1, -1, -1):
                 '''Nasch位置更新步begin'''
-                if(positionArray[i, j] == 1):
+                if (positionArray[i, j] == 1):
                     position_next = int(j + speedArray[i, j])
                     if (position_next != j):
                         '''流量&总行程时间&总行程车速统计begin'''
@@ -91,7 +171,7 @@ class Road(object):
                             self.travel_time += speedCounter[i, j]
                             self.travel_speed += (self.limit_end - self.limit_begin) / speedCounter[i, j]
                         '''流量&总行程时间&总行程车速统计end'''
-                        if(position_next < positionArray.shape[1]):
+                        if (position_next < positionArray.shape[1]):
                             positionArray[i, position_next] = 1
                             speedArray[i, position_next] = speedArray[i, j]
                             speedCounter[i, position_next] = speedCounter[i, j]
@@ -99,9 +179,6 @@ class Road(object):
                         speedArray[i, j] = 0
                         speedCounter[i, j] = 0
                 '''Nasch位置更新步end'''
-            '''为时空图做准备begin'''
-            prepare_space_time(positionArray, self.lane_for_st_figure)
-            '''为时空图做准备begin'''
         return positionArray
 
 
