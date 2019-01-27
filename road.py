@@ -6,13 +6,13 @@ import random
 import csv
 
 HAVECAR = 1
-WALL = 2
+WALL = 3
 EMPTY = 0
 PROBSLOW = 0.1
 
 
 class Road(object):
-    def __init__(self, length, lanes, vmax, prob_in, islimit, limit_begin, limit_end, lane_for_st_figure, switch_lane_prob, limit_speed):
+    def __init__(self, length, lanes, vmax, prob_in, islimit, limit_begin, limit_end, lane_for_st_figure, switch_lane_prob, limit_speed, congestion_point_lane, congestion_point_point):
         self.length = length
         self.lanes = lanes
         self.positionArray = np.zeros((lanes + 2, length))
@@ -36,6 +36,9 @@ class Road(object):
         self.switch_lane_prob = switch_lane_prob
         self.switch_counter = 0
         self.limit_speed = limit_speed
+        self.congestion_point_lane = congestion_point_lane
+        self.congestion_point_point = congestion_point_point
+        self.positionArray[congestion_point_lane, congestion_point_point] = 2
     def progress(self, speed):
         limit_speed = speed
         positionArray = self.positionArray
@@ -59,7 +62,7 @@ class Road(object):
                 speedArray[i, j] = min(speedArray[i, j] + 1, vmax)
                 '''加速步骤end'''
                 '''计算前车距离begin'''
-                if(positionArray[i, j] == 1):
+                if positionArray[i, j] == 1 or positionArray[i, j] == 2:
                     if gap_position_temp - j - 1 < 0:
                         raise RuntimeError('gap error')
                     gap[i, j] = gap_position_temp - j - 1
@@ -82,24 +85,29 @@ class Road(object):
         for i in range(1, positionArray.shape[0] - 1):
             gap_position_temp = sys.maxint
             for j in range(positionArray.shape[1] - 1, -1, -1):
-                if (positionArray[i, j] == 1):
+                if positionArray[i, j] == 1 or positionArray[i, j] == 2:
                     if gap_position_temp - j - 1 < 0:
                         raise RuntimeError('gap error')
                     gap[i, j] = gap_position_temp - j - 1
                     gap_position_temp = j
         '''换道后更新前车距离end'''
         '''减速步、随机慢化步begin'''
-        gap_position_temp2 = sys.maxint
         for i in range(1, positionArray.shape[0] - 1):
             # 计数器，第1辆车和第2辆车减速步特殊处理
             count = 1
+            gap_position_temp2 = sys.maxint
             for j in range(positionArray.shape[1] - 1, -1, -1):
                 '''确定当前的vmax：vmax or limit_speed'''
                 vmax = limit_speed if (positionArray[i, j] == 1 and self.is_limit and self.limit_begin <= j <= self.limit_end) else self.vmax
                 '''确定当前的vmax：vmax or limit_speed'''
                 '''减速步begin'''
-                if (positionArray[i, j] == 1):
-                    if count == 1:
+                if positionArray[i, j] == 1 or positionArray[i, j] == 2:
+                    if positionArray[i, j] == 2:
+                        pass
+                    elif gap_position_temp2 < positionArray.shape[1] and positionArray[i, gap_position_temp2] == 2:
+                        temp_speed = min(speedArray[i, j], gap[i, j])
+                        speedArray[i, j] = max(temp_speed, 0)
+                    elif count == 1:
                         pass
                     elif count == 2:
                         temp_speed = min(speedArray[i, j], gap[i, j])
@@ -137,6 +145,14 @@ class Road(object):
                                     print 'i speed= %d' % speedArray[i, j]
                                     print 'position_next= %d' % position_next
                                     raise RuntimeError('car conflict')
+                                if positionArray[i, c] == 2:
+                                    print 'i= %d' % i
+                                    print 'j= %d' % j
+                                    print 'c= %d' % c
+                                    print 'i speed= %d' % speedArray[i, j]
+                                    print 'position_next= %d' % position_next
+                                    print 'gap= %d' % gap[i, j]
+                                    raise RuntimeError('congestion conflict')
                         '''流量&总行程时间&总行程车速统计begin'''
                         if j <= self.limit_end <= position_next:
                             self.count_flow += 1
@@ -167,14 +183,14 @@ def switch_lane(positionArray, i, lanes, vmax, right_change_condition, left_chan
             if i == 1:
                 change = True
                 for r in range(j - vmax - 1, j + 1):
-                    if positionArray[i + 1, r] == 1:
+                    if positionArray[i + 1, r] == 1 or positionArray[i + 1, r] == 2:
                         change = False
                         break
                 right_change_condition[i, j] = change
             elif i == lanes:
                 change = True
                 for l in range(j - vmax - 1, j + 1):
-                    if positionArray[i - 1, l] == 1:
+                    if positionArray[i - 1, l] == 1 or positionArray[i - 1, l] == 2:
                         change = False
                         break
                 left_change_condition[i, j] = change
@@ -182,11 +198,11 @@ def switch_lane(positionArray, i, lanes, vmax, right_change_condition, left_chan
                 change_left = True
                 change_right = True
                 for l in range(j - vmax - 1, j + 1):
-                    if positionArray[i - 1, l] == 1:
+                    if positionArray[i - 1, l] == 1 or positionArray[i - 1, l] == 2:
                         change_left = False
                         break
                 for r in range(j - vmax - 1, j + 1):
-                    if positionArray[i + 1, r] == 1:
+                    if positionArray[i + 1, r] == 1 or positionArray[i + 1, r] == 2:
                         change_right = False
                         break
                 left_change_condition[i, j] = change_left

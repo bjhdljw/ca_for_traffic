@@ -50,7 +50,7 @@ def space_time():
 
 def road_visualization_dynamic(road, time_interval, pause_time):
 
-    colors = ['white', 'blue', 'black']
+    colors = ['white', 'blue', 'red', 'black']
     cmap = mpl.colors.ListedColormap(colors)
 
     temp_flow = 0
@@ -139,8 +139,10 @@ if __name__ == '__main__':
     time_interval = 10
     switch_lane_prob = 1
     pause_time = 1
+    congestion_point_lane = 3
+    congestion_point_point = 50
 
-    road = road.Road(road_length, lanes, vmax, pro_in, True, limit_begin, limit_end, lane_for_st_figure, switch_lane_prob, limit_speed)
+    road = road.Road(road_length, lanes, vmax, pro_in, True, limit_begin, limit_end, lane_for_st_figure, switch_lane_prob, limit_speed, congestion_point_lane, congestion_point_point)
     road_visualization_dynamic(road, time_interval, pause_time)
 
     '''test'''
