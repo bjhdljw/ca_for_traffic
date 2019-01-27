@@ -48,7 +48,7 @@ def space_time():
     print df
 
 
-def road_visualization_dynamic(road, time_interval):
+def road_visualization_dynamic(road, time_interval, pause_time):
 
     colors = ['white', 'blue', 'black']
     cmap = mpl.colors.ListedColormap(colors)
@@ -113,10 +113,10 @@ def road_visualization_dynamic(road, time_interval):
         ax2.text(0, -0.8, str_interval_travel_time)
         ax1.imshow(road.positionArray, cmap=cmap)
         ax1.axis('off')
-        plt.pause(0.2)
+        plt.pause(pause_time)
         ax2.clear()
         ax2.axis('off')
-        road.progress(road.vmax)
+        road.progress(road.limit_speed)
     plt.ioff()
 
 if __name__ == '__main__':
@@ -126,23 +126,24 @@ if __name__ == '__main__':
 
     simulation_times = 1000
     lanes = 3
-    road_length = 20
+    road_length = 80
     new_car_speed = 0
     new_car_position = 1
     vmax = 5
-    pro_in = 0.2
+    limit_speed = 1
+    pro_in = 0.6
     islimit = False
-    limit_begin = 10
-    limit_end = 20
+    limit_begin = 50
+    limit_end = 60
     lane_for_st_figure = 3
     time_interval = 10
-    switch_lane_prob = 0.8
+    switch_lane_prob = 1
+    pause_time = 1
 
-    road = road.Road(road_length, lanes, vmax, pro_in, True, 0, road_length - 1, lane_for_st_figure, switch_lane_prob)
-    road_visualization_dynamic(road, time_interval)
+    road = road.Road(road_length, lanes, vmax, pro_in, True, limit_begin, limit_end, lane_for_st_figure, switch_lane_prob, limit_speed)
+    road_visualization_dynamic(road, time_interval, pause_time)
 
-    # '''test'''
-    # basic_figure()
-    # '''test'''
+    '''test'''
+    '''test'''
 
 
