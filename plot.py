@@ -131,18 +131,20 @@ if __name__ == '__main__':
     new_car_position = 1
     vmax = 5
     limit_speed = 1
-    pro_in = 0.6
+    pro_in = 0.8
     islimit = False
     limit_begin = 50
     limit_end = 60
     lane_for_st_figure = 3
     time_interval = 10
     switch_lane_prob = 1
+    switch_left_prob = 0.1
     pause_time = 1
     congestion_point_lane = 3
-    congestion_point_point = 50
+    congestion_point_point = 5
+    time_can_wait = 3
 
-    road = road.Road(road_length, lanes, vmax, pro_in, True, limit_begin, limit_end, lane_for_st_figure, switch_lane_prob, limit_speed, congestion_point_lane, congestion_point_point)
+    road = road.Road(road_length, lanes, vmax, pro_in, False, limit_begin, limit_end, lane_for_st_figure, switch_lane_prob, limit_speed, congestion_point_lane, congestion_point_point, time_can_wait, switch_left_prob)
     road_visualization_dynamic(road, time_interval, pause_time)
 
     '''test'''
