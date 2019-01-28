@@ -12,7 +12,7 @@ PROBSLOW = 0.1
 
 
 class Road(object):
-    def __init__(self, length, lanes, vmax, prob_in, islimit, limit_begin, limit_end, lane_for_st_figure, switch_lane_prob, limit_speed, congestion_point_lane, congestion_point_point, time_can_wait, switch_left_prob):
+    def __init__(self, length, lanes, vmax, prob_in, islimit, limit_begin, limit_end, lane_for_st_figure, switch_lane_prob, limit_speed, congestion_point_lane, congestion_point_point, time_can_wait, switch_left_prob, congestion_length):
         self.length = length
         self.lanes = lanes
         self.positionArray = np.zeros((lanes + 2, length))
@@ -41,7 +41,8 @@ class Road(object):
         self.limit_speed = limit_speed
         self.congestion_point_lane = congestion_point_lane
         self.congestion_point_point = congestion_point_point
-        self.positionArray[congestion_point_lane, congestion_point_point] = 2
+        self.congestion_length = congestion_length
+        self.positionArray[congestion_point_lane, congestion_point_point : congestion_point_point + congestion_length] = 2
         self.time_can_wait = time_can_wait
         self.switch_left_prob = switch_left_prob
     def progress(self, speed):
@@ -258,7 +259,16 @@ def switch_lane(positionArray, i, lanes, vmax, right_change_condition, left_chan
                         speedArray[i + 1, j] = speedArray[i, j]
                         speedCounter[i + 1, j] = speedCounter[i, j]
                         timeWaited[i + 1, j] = 0
-                    if left_change_real[i, j] == 1 and right_change_real[i, j] == 1:
+                    if left_change_real[i, j] == 1 and right_change_real[i, j] == 1 and random.uniform(0, 1) < road.switch_left_prob:
+                        if positionArray[i - 1, j] == 1:
+                            print 'lane= %d' % i
+                            print 'j= %d' % j
+                            raise RuntimeError('switch error')
+                        positionArray[i - 1, j] = 1
+                        speedArray[i - 1, j] = speedArray[i, j]
+                        speedCounter[i - 1, j] = speedCounter[i, j]
+                        timeWaited[i - 1, j] = 0
+                    elif right_change_real[i, j] == 1 and left_change_real[i, j] == 1:
                         if positionArray[i + 1, j] == 1:
                             print 'lane= %d' % i
                             print 'j= %d' % j
@@ -367,7 +377,16 @@ def switch_lane(positionArray, i, lanes, vmax, right_change_condition, left_chan
                         speedArray[i + 1, j] = speedArray[i, j]
                         speedCounter[i + 1, j] = speedCounter[i, j]
                         timeWaited[i + 1, j] = 0
-                    if right_change_real[i, j] == 1 and left_change_real[i, j] == 1:
+                    if right_change_real[i, j] == 1 and left_change_real[i, j] == 1 and random.uniform(0, 1) < road.switch_left_prob:
+                        if positionArray[i - 1, j] == 1:
+                            print 'lane= %d' % i
+                            print 'j= %d' % j
+                            raise RuntimeError('switch error')
+                        positionArray[i - 1, j] = 1
+                        speedArray[i - 1, j] = speedArray[i, j]
+                        speedCounter[i - 1, j] = speedCounter[i, j]
+                        timeWaited[i - 1, j] = 0
+                    elif right_change_real[i, j] == 1 and left_change_real[i, j] == 1:
                         if positionArray[i + 1, j] == 1:
                             print 'lane= %d' % i
                             print 'j= %d' % j
