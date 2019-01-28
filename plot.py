@@ -145,7 +145,7 @@ if __name__ == '__main__':
     congestion_length = 5
     time_can_wait = 3
 
-    road = road.Road(road_length, lanes, vmax, pro_in, False, limit_begin, limit_end, lane_for_st_figure, switch_lane_prob, limit_speed, congestion_point_lane, congestion_point_point, time_can_wait, switch_left_prob, congestion_length)
+    road = road.Road()
     road_visualization_dynamic(road, time_interval, pause_time)
 
     '''test'''

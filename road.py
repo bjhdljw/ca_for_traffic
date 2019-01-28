@@ -4,47 +4,51 @@ import numpy as np
 import sys
 import random
 import csv
+import ConfigParser
 
 HAVECAR = 1
 WALL = 3
 EMPTY = 0
+CONGESTION = 2
 PROBSLOW = 0.1
 
 
 class Road(object):
-    def __init__(self, length, lanes, vmax, prob_in, islimit, limit_begin, limit_end, lane_for_st_figure, switch_lane_prob, limit_speed, congestion_point_lane, congestion_point_point, time_can_wait, switch_left_prob, congestion_length):
-        self.length = length
-        self.lanes = lanes
-        self.positionArray = np.zeros((lanes + 2, length))
-        self.speedArray = np.zeros((lanes + 2, length))
-        self.speedCounter = np.zeros((lanes + 2, length))
-        self.timeWaited = np.zeros((lanes + 2, length))
+    def __init__(self):
+        cp = ConfigParser.SafeConfigParser()
+        cp.read('road.conf')
+        self.lanes = cp.getint('road', 'lanes')
+        self.length = cp.getint('road', 'road_length')
+        self.positionArray = np.zeros((self.lanes + 2, self.length))
+        self.speedArray = np.zeros((self.lanes + 2, self.length))
+        self.speedCounter = np.zeros((self.lanes + 2, self.length))
+        self.timeWaited = np.zeros((self.lanes + 2, self.length))
         self.positionArray[0, :] = WALL
-        self.positionArray[lanes + 1, :] = WALL
+        self.positionArray[self.lanes + 1, :] = WALL
         self.speedArray[0, :] = WALL
-        self.speedArray[lanes + 1, :] = WALL
+        self.speedArray[self.lanes + 1, :] = WALL
         self.speedCounter[0, :] = WALL
-        self.speedCounter[lanes + 1, :] = WALL
+        self.speedCounter[self.lanes + 1, :] = WALL
         self.timeWaited[0, :] = WALL
-        self.timeWaited[lanes + 1, :] = WALL
-        self.vmax = vmax
-        self.prob_in = prob_in
-        self.is_limit = islimit
-        self.limit_begin = limit_begin
-        self.limit_end = limit_end
-        self.lane_for_st_figure = lane_for_st_figure
+        self.timeWaited[self.lanes + 1, :] = WALL
+        self.vmax = cp.getint('road', 'vmax')
+        self.prob_in = cp.getfloat('road', 'pro_in')
+        self.is_limit = cp.getboolean('road', 'islimit')
+        self.limit_begin = cp.getint('road', 'limit_begin')
+        self.limit_end = cp.getint('road', 'limit_end')
+        self.lane_for_st_figure = cp.getint('road', 'lane_for_st_figure')
         self.count_flow = 0
         self.travel_time = 0
         self.travel_speed = 0
-        self.switch_lane_prob = switch_lane_prob
+        self.switch_lane_prob = cp.getint('road', 'switch_lane_prob')
         self.switch_counter = 0
-        self.limit_speed = limit_speed
-        self.congestion_point_lane = congestion_point_lane
-        self.congestion_point_point = congestion_point_point
-        self.congestion_length = congestion_length
-        self.positionArray[congestion_point_lane, congestion_point_point : congestion_point_point + congestion_length] = 2
-        self.time_can_wait = time_can_wait
-        self.switch_left_prob = switch_left_prob
+        self.limit_speed = cp.getint('road', 'limit_speed')
+        self.congestion_point_lane = cp.getint('road', 'congestion_point_lane')
+        self.congestion_point_point = cp.getint('road', 'congestion_point_point')
+        self.congestion_length = cp.getint('road', 'congestion_length')
+        self.positionArray[self.congestion_point_lane, self.congestion_point_point : self.congestion_point_point + self.congestion_length] = CONGESTION
+        self.time_can_wait = cp.getint('road', 'time_can_wait')
+        self.switch_left_prob = cp.getfloat('road', 'switch_left_prob')
     def progress(self, speed):
         limit_speed = speed
         positionArray = self.positionArray
