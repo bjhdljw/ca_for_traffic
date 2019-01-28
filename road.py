@@ -43,10 +43,13 @@ class Road(object):
         self.switch_lane_prob = cp.getint('road', 'switch_lane_prob')
         self.switch_counter = 0
         self.limit_speed = cp.getint('road', 'limit_speed')
-        self.congestion_point_lane = cp.getint('road', 'congestion_point_lane')
-        self.congestion_point_point = cp.getint('road', 'congestion_point_point')
-        self.congestion_length = cp.getint('road', 'congestion_length')
-        self.positionArray[self.congestion_point_lane, self.congestion_point_point : self.congestion_point_point + self.congestion_length] = CONGESTION
+        self.iscongestion = cp.getboolean('road', 'iscongestion')
+        if self.iscongestion:
+            self.congestion_point_lane = cp.getint('road', 'congestion_point_lane')
+            self.congestion_point_point = cp.getint('road', 'congestion_point_point')
+            self.congestion_length = cp.getint('road', 'congestion_length')
+            self.positionArray[self.congestion_point_lane,
+            self.congestion_point_point: self.congestion_point_point + self.congestion_length] = CONGESTION
         self.time_can_wait = cp.getint('road', 'time_can_wait')
         self.switch_left_prob = cp.getfloat('road', 'switch_left_prob')
     def progress(self, speed):
@@ -194,7 +197,7 @@ def prepare_space_time(positionArray, lane):
 def switch_lane(positionArray, i, lanes, vmax, right_change_condition, left_change_condition, speedArray, gap, left_change_real, right_change_real, switch_lane_prob, speedCounter, road, timeWaited):
     for j in range(positionArray.shape[1] - 1, -1, -1):
         change_force = False
-        if positionArray[i, j] == 1 and i == road.congestion_point_lane and j < road.congestion_point_point and j + road.vmax > road.congestion_point_point:
+        if positionArray[i, j] == 1 and road.iscongestion and i == road.congestion_point_lane and j < road.congestion_point_point and j + road.vmax > road.congestion_point_point:
             change_force = True
         if (timeWaited[i, j] != 0 and timeWaited[i, j] % (road.time_can_wait * 2) == 0) or change_force:
             '''计算换道条件begin'''

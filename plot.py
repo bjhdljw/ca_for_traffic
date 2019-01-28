@@ -30,15 +30,29 @@ def basic_figure():
     density = flow / speed
     xdata = flow['SUM']
     ydata = speed['SUM']
-    plt.scatter(flow, speed, linewidths=1)
+    xlist = xdata.values.tolist()
+    ylist = ydata.values.tolist()
+    xset = set(xlist)
+    d = dict()
+    for s in xset:
+        sum = 0
+        count = 0
+        for i in range(0, len(xlist)):
+            if xlist[i] == s:
+                sum += ylist[i]
+                count += 1
+        d[s] = sum/count
+    plt.plot(d.keys(), d.values(), '.')
+
+    # plt.scatter(flow, speed, linewidths=1)
     # plt.scatter(density, flow, linewidths=1)
     # plt.scatter(density, speed, linewidths=1)
-    '''拟合test'''
-    A1, B1, C1 = optimize.curve_fit(f_2, xdata, ydata)[0]
-    x1 = np.arange(0, 200, 1)
-    y1 = A1*x1*x1 + B1*x1 + C1
-    plt.plot(x1, y1)
-    '''拟合test'''
+    # '''拟合test'''
+    # A1, B1, C1 = optimize.curve_fit(f_2, xdata, ydata)[0]
+    # x1 = np.arange(0, 200, 1)
+    # y1 = A1*x1*x1 + B1*x1 + C1
+    # plt.plot(x1, y1)
+    # '''拟合test'''
     plt.show()
 
 
@@ -57,6 +71,12 @@ def road_visualization_dynamic(road, time_interval, pause_time):
     temp_speed = 0
     temp_travel_time = 0
 
+    '''list for basic_figure'''
+    flow_list = list()
+    speed_list = list()
+    density_list = list()
+    '''list for basic_figure'''
+
     plt.ion()
     fig = plt.figure()
     '''可视化界面布局begin'''
@@ -64,6 +84,9 @@ def road_visualization_dynamic(road, time_interval, pause_time):
     ax2 = fig.add_subplot(334)
     ax3 = fig.add_subplot(335)
     ax4 = fig.add_subplot(336)
+    ax5 = fig.add_subplot(337)
+    ax6 = fig.add_subplot(338)
+    ax7 = fig.add_subplot(339)
     ax2.axis('off')
     ax3.axis('off')
     ax4.axis('off')
@@ -85,13 +108,13 @@ def road_visualization_dynamic(road, time_interval, pause_time):
         str_density = 'traffic density= %.2f' % (road.count_flow/travel_speed if travel_speed != 0 else 0)
         str_switch_counter = 'switch_times= % d' % road.switch_counter
         ax2.text(0, 0, str_t)
-        ax2.text(0, 0.2, str_flow)
-        ax2.text(0, 0.4, str_limit_begin)
-        ax2.text(0, 0.6, str_limit_end)
-        ax2.text(0, 0.8, str_travel_time)
-        ax2.text(0, 1, str_travel_speed)
-        ax2.text(0, 1.2, str_density)
-        ax2.text(0, 1.4, str_switch_counter)
+        ax2.text(0, 0.15, str_flow)
+        ax2.text(0, 0.3, str_limit_begin)
+        ax2.text(0, 0.45, str_limit_end)
+        ax2.text(0, 0.6, str_travel_time)
+        ax2.text(0, 0.75, str_travel_speed)
+        ax2.text(0, 0.9, str_density)
+        ax2.text(0, 1.05, str_switch_counter)
         '''每一时间步一展示数据end'''
         '''每t时间步展示数据begin'''
         if t % time_interval == 0:
@@ -101,16 +124,32 @@ def road_visualization_dynamic(road, time_interval, pause_time):
             temp_speed = road.travel_speed
             interval_travel_time = road.travel_time - temp_travel_time
             temp_travel_time = road.travel_time
+            interval_travel_speed = interval_speed / interval_flow if interval_flow != 0 else 0
+            if interval_flow == 0 and interval_speed == 0:
+                pass
+            else:
+                speed_list.append(interval_speed)
+                flow_list.append(interval_flow)
+                density_list.append((interval_flow / interval_travel_speed if interval_travel_speed != 0 else 0))
+            ax5.scatter(flow_list, speed_list)
+            ax5.set_xlabel('flow')
+            ax5.set_ylabel('speed')
+            ax6.scatter(density_list, speed_list)
+            ax6.set_xlabel('density')
+            ax6.set_ylabel('speed')
+            ax7.scatter(density_list, flow_list)
+            ax7.set_xlabel('density')
+            ax7.set_ylabel('flow')
         '''每t时间步展示数据end'''
         str_interval_flow = 'interval flow= %d' % interval_flow
         interval_travel_speed = interval_speed / interval_flow if interval_flow != 0 else 0
         str_interval_traval_speed = 'interval travel speed= %.2f' % interval_travel_speed
         str_interval_density = 'interval density= %.2f' % (interval_flow/interval_travel_speed if interval_travel_speed != 0 else 0)
         str_interval_travel_time = 'interval travel time= %.2f' % (interval_travel_time/interval_flow if interval_flow != 0 else 0)
-        ax2.text(0, -0.2, str_interval_flow)
-        ax2.text(0, -0.4, str_interval_traval_speed)
-        ax2.text(0, -0.6, str_interval_density)
-        ax2.text(0, -0.8, str_interval_travel_time)
+        ax2.text(0, -0.15, str_interval_flow)
+        ax2.text(0, -0.3, str_interval_traval_speed)
+        ax2.text(0, -0.45, str_interval_density)
+        ax2.text(0, -0.6, str_interval_travel_time)
         ax1.imshow(road.positionArray, cmap=cmap)
         ax1.axis('off')
         plt.pause(pause_time)
@@ -149,6 +188,7 @@ if __name__ == '__main__':
     road_visualization_dynamic(road, time_interval, pause_time)
 
     '''test'''
+    # basic_figure()
     '''test'''
 
 
