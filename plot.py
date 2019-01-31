@@ -6,8 +6,6 @@ import matplotlib as mpl
 import car as car
 import pandas as pd
 import random
-from scipy import optimize
-import numpy as np
 
 def f_1(x, A, B):
     return A*x + B
@@ -34,17 +32,18 @@ def basic_figure():
     ylist = ydata.values.tolist()
     xset = set(xlist)
     d = dict()
-    for s in xset:
-        sum = 0
-        count = 0
-        for i in range(0, len(xlist)):
-            if xlist[i] == s:
-                sum += ylist[i]
-                count += 1
-        d[s] = sum/count
-    plt.plot(d.keys(), d.values(), '.')
+    # for s in xset:
+    #     sum = 0
+    #     count = 0
+    #     for i in range(0, len(xlist)):
+    #         if xlist[i] == s:
+    #             sum += ylist[i]
+    #             count += 1
+    #     d[s] = sum/count
+    # plt.plot(d.keys(), d.values(), '.')
 
-    # plt.scatter(flow, speed, linewidths=1)
+    print speed
+    plt.scatter(flow, speed, s=2)
     # plt.scatter(density, flow, linewidths=1)
     # plt.scatter(density, speed, linewidths=1)
     # '''拟合test'''
@@ -89,9 +88,9 @@ def road_visualization_dynamic(road, time_interval, pause_time):
     ax7 = fig.add_subplot(339)
     ax2.axis('off')
     ax3.axis('off')
-    ax4.axis('off')
+    time_space_count = 0
     '''可视化界面布局end'''
-    for t in range(simulation_times):
+    for t in range(road.simulation_times):
         for i in range(1, road.lanes + 1):
             carr = car.Car()
             if random.uniform(0, 1) < road.prob_in:
@@ -125,19 +124,28 @@ def road_visualization_dynamic(road, time_interval, pause_time):
             interval_travel_time = road.travel_time - temp_travel_time
             temp_travel_time = road.travel_time
             interval_travel_speed = interval_speed / interval_flow if interval_flow != 0 else 0
+            time_space_y = list()
+            time_space_x = list()
             if interval_flow == 0 and interval_speed == 0:
                 pass
             else:
+                time_space_temp = road.positionArray[road.lane_for_st_figure, road.limit_begin : road.limit_end].tolist()
+                for i in range(0, len(time_space_temp)):
+                    if time_space_temp[i] == 0:
+                        time_space_y.append(time_space_temp[i] + time_space_count)
+                        time_space_x.append(i)
                 speed_list.append(interval_speed)
                 flow_list.append(interval_flow)
                 density_list.append((interval_flow / interval_travel_speed if interval_travel_speed != 0 else 0))
-            ax5.scatter(flow_list, speed_list)
+                time_space_count += 1
+            ax4.scatter(time_space_x, time_space_y, s=1, c='b')
+            ax5.scatter(flow_list, speed_list, c='b')
             ax5.set_xlabel('flow')
             ax5.set_ylabel('speed')
-            ax6.scatter(density_list, speed_list)
+            ax6.scatter(density_list, speed_list, c='b')
             ax6.set_xlabel('density')
             ax6.set_ylabel('speed')
-            ax7.scatter(density_list, flow_list)
+            ax7.scatter(density_list, flow_list, c='b')
             ax7.set_xlabel('density')
             ax7.set_ylabel('flow')
         '''每t时间步展示数据end'''
@@ -163,26 +171,8 @@ if __name__ == '__main__':
     colors = ['white', 'blue', 'black']
     cmap = mpl.colors.ListedColormap(colors)
 
-    simulation_times = 1000
-    lanes = 3
-    road_length = 80
-    new_car_speed = 0
-    new_car_position = 1
-    vmax = 5
-    limit_speed = 1
-    pro_in = 0.8
-    islimit = False
-    limit_begin = 50
-    limit_end = 60
-    lane_for_st_figure = 3
     time_interval = 10
-    switch_lane_prob = 1
-    switch_left_prob = 0.1
     pause_time = 1
-    congestion_point_lane = 3
-    congestion_point_point = 5
-    congestion_length = 5
-    time_can_wait = 3
 
     road = road.Road()
     road_visualization_dynamic(road, time_interval, pause_time)

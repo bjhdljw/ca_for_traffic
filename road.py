@@ -17,6 +17,7 @@ class Road(object):
     def __init__(self):
         cp = ConfigParser.SafeConfigParser()
         cp.read('road.conf')
+        self.simulation_times = cp.getint('road', 'simulation_times')
         self.lanes = cp.getint('road', 'lanes')
         self.length = cp.getint('road', 'road_length')
         self.positionArray = np.zeros((self.lanes + 2, self.length))
@@ -86,9 +87,6 @@ class Road(object):
                 if self.limit_begin <= j <= self.limit_end and speedCounter[i, j] != 0:
                     speedCounter[i, j] += 1
                 '''行程开始时间累计end'''
-            '''为时空图做准备begin'''
-            prepare_space_time(positionArray, self.lane_for_st_figure)
-            '''为时空图做准备begin'''
         '''逐车道换道begin'''
         for i in range(1, self.lanes + 1):
             switch_lane(positionArray, i, self.lanes, self.vmax, right_change_condition, left_change_condition,
@@ -188,10 +186,10 @@ class Road(object):
         return positionArray
 
 
-def prepare_space_time(positionArray, lane):
-    out = open('space_time.csv', mode='a')
-    csv_writer = csv.writer(out, dialect='excel')
-    csv_writer.writerow(positionArray[lane, :])
+# def prepare_space_time(positionArray, lane):
+#     out = open('space_time.csv', mode='a')
+#     csv_writer = csv.writer(out, dialect='excel')
+#     csv_writer.writerow(positionArray[lane, :])
 
 
 def switch_lane(positionArray, i, lanes, vmax, right_change_condition, left_change_condition, speedArray, gap, left_change_real, right_change_real, switch_lane_prob, speedCounter, road, timeWaited):
