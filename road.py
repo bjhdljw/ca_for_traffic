@@ -45,6 +45,9 @@ class Road(object):
         self.switch_counter = 0
         self.limit_speed = cp.getint('road', 'limit_speed')
         self.iscongestion = cp.getboolean('road', 'iscongestion')
+        self.vmax1 = cp.getint('road', 'vmax1')
+        self.vmax2 = cp.getint('road', 'vmax2')
+        self.vmax3 = cp.getint('road', 'vmax3')
         if self.iscongestion:
             self.congestion_point_lane = cp.getint('road', 'congestion_point_lane')
             self.congestion_point_point = cp.getint('road', 'congestion_point_point')
@@ -53,25 +56,45 @@ class Road(object):
             self.congestion_point_point: self.congestion_point_point + self.congestion_length] = CONGESTION
         self.time_can_wait = cp.getint('road', 'time_can_wait')
         self.switch_left_prob = cp.getfloat('road', 'switch_left_prob')
+
+    def get_vmax(self, lane):
+        if lane == 1:
+            return self.vmax1
+        elif lane == 2:
+            return self.vmax2
+        elif lane == 3:
+            return self.vmax3
+
+    def progeress_dqn(self, speed, input_actions):
+        self.progress(speed)
+
     def progress(self, speed):
+        '''中间量'''
         limit_speed = speed
         positionArray = self.positionArray
         speedArray = self.speedArray
         speedCounter = self.speedCounter
         timeWaited = self.timeWaited
-        #中间量：只有减速步的时候用
+        islimit = False
+        '''中间量'''
+        '''中间量：只有减速步的时候用'''
         gap = np.zeros(positionArray.shape)
         left_change_condition = np.zeros(positionArray.shape)
         right_change_condition = np.zeros(positionArray.shape)
         left_change_real = np.zeros(positionArray.shape)
         right_change_real = np.zeros(positionArray.shape)
+        '''中间量：只有减速步的时候用'''
         for i in range(1, positionArray.shape[0] - 1):
             gap_position_temp = sys.maxint
             for j in range(positionArray.shape[1] - 1, -1, -1):
                 '''确定当前的vmax：vmax or limit_speed'''
-                vmax = self.vmax
+                vmax = self.get_vmax(i)
                 if positionArray[i, j] == 1:
-                    vmax = limit_speed if (positionArray[i, j] == 1 and self.is_limit and self.limit_begin <= j <= self.limit_end) else self.vmax
+                    if positionArray[i, j] == 1 and self.is_limit and self.limit_begin <= j <= self.limit_end:
+                        islimit = True
+                        vmax = limit_speed
+                    else:
+                        islimit = False
                 '''确定当前的vmax：vmax or limit_speed'''
                 '''加速步骤begin'''
                 speedArray[i, j] = min(speedArray[i, j] + 1, vmax)
@@ -90,7 +113,7 @@ class Road(object):
         '''逐车道换道begin'''
         for i in range(1, self.lanes + 1):
             switch_lane(positionArray, i, self.lanes, self.vmax, right_change_condition, left_change_condition,
-                        speedArray, gap, left_change_real, right_change_real, self.switch_lane_prob, speedCounter, self, timeWaited)
+                        speedArray, gap, left_change_real, right_change_real, self.switch_lane_prob, speedCounter, self, timeWaited, islimit)
         '''逐车道换道end'''
         '''换道后更新前车距离begin'''
         gap = np.zeros(positionArray.shape)
@@ -192,10 +215,10 @@ class Road(object):
 #     csv_writer.writerow(positionArray[lane, :])
 
 
-def switch_lane(positionArray, i, lanes, vmax, right_change_condition, left_change_condition, speedArray, gap, left_change_real, right_change_real, switch_lane_prob, speedCounter, road, timeWaited):
+def switch_lane(positionArray, i, lanes, vmax, right_change_condition, left_change_condition, speedArray, gap, left_change_real, right_change_real, switch_lane_prob, speedCounter, road, timeWaited, islimit):
     for j in range(positionArray.shape[1] - 1, -1, -1):
         change_force = False
-        if positionArray[i, j] == 1 and road.iscongestion and i == road.congestion_point_lane and j < road.congestion_point_point and j + road.vmax > road.congestion_point_point:
+        if positionArray[i, j] == 1 and road.iscongestion and i == road.congestion_point_lane and j < road.congestion_point_point and j + vmax > road.congestion_point_point:
             change_force = True
         if (timeWaited[i, j] != 0 and timeWaited[i, j] % (road.time_can_wait * 2) == 0) or change_force:
             '''计算换道条件begin'''
@@ -304,14 +327,16 @@ def switch_lane(positionArray, i, lanes, vmax, right_change_condition, left_chan
             if positionArray[i, j] == 1:
                 if i == 1:
                     change = True
-                    for r in range(j - vmax - 1, j + 1):
+                    tempvmax = vmax if islimit else road.get_vmax(i + 1)
+                    for r in range(j - tempvmax - 1, j + 1):
                         if positionArray[i + 1, r] == 1 or positionArray[i + 1, r] == 2:
                             change = False
                             break
                     right_change_condition[i, j] = change
                 elif i == lanes:
                     change = True
-                    for l in range(j - vmax - 1, j + 1):
+                    tempvmax = vmax if islimit else road.get_vmax(i - 1)
+                    for l in range(j - tempvmax - 1, j + 1):
                         if positionArray[i - 1, l] == 1 or positionArray[i - 1, l] == 2:
                             change = False
                             break
@@ -319,11 +344,13 @@ def switch_lane(positionArray, i, lanes, vmax, right_change_condition, left_chan
                 elif 1 < i < lanes:
                     change_left = True
                     change_right = True
-                    for l in range(j - vmax - 1, j + 1):
+                    tempvmaxl = vmax if islimit else road.get_vmax(i - 1)
+                    tempvmaxr = vmax if islimit else road.get_vmax(i + 1)
+                    for l in range(j - tempvmaxl - 1, j + 1):
                         if positionArray[i - 1, l] == 1 or positionArray[i - 1, l] == 2:
                             change_left = False
                             break
-                    for r in range(j - vmax - 1, j + 1):
+                    for r in range(j - tempvmaxr - 1, j + 1):
                         if positionArray[i + 1, r] == 1 or positionArray[i + 1, r] == 2:
                             change_right = False
                             break
