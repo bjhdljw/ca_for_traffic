@@ -8,6 +8,7 @@ import pandas as pd
 import random
 import csv
 
+
 def f_1(x, A, B):
     return A*x + B
 
@@ -62,30 +63,16 @@ def space_time():
     print df
 
 
-def road_visualization_dynamic(road, time_interval, pause_time):
-
+def road_visualization(road, time_interval, pause_time):
     colors = ['white', 'blue', 'red', 'black']
     cmap = mpl.colors.ListedColormap(colors)
-
     temp_flow = 0
     temp_speed = 0
-    temp_travel_time = 0
-
-    '''list to storage'''
-    flow_store = list()
-    speed_store = list()
-    '''list to storage'''
-
-    '''list for basic_figure'''
     flow_list = list()
     speed_list = list()
     density_list = list()
-    '''list for basic_figure'''
-
+    """Turn interactive mode on."""
     plt.ion()
-    '''可视化界面布局begin'''
-    time_space_count = 0
-    '''可视化界面布局end'''
     for t in range(road.simulation_times):
         """入口随机入车 begin"""
         for i in range(1, road.lanes + 1):
@@ -105,24 +92,12 @@ def road_visualization_dynamic(road, time_interval, pause_time):
             # 速度
             interval_speed = road.travel_speed - temp_speed
             temp_speed = road.travel_speed
-            interval_travel_time = road.travel_time - temp_travel_time
-            temp_travel_time = road.travel_time
             interval_travel_speed = interval_speed / interval_flow if interval_flow != 0 else 0
-            # 时空图
-            # time_space_y = list()
-            # time_space_x = list()
             if interval_flow == 0 and interval_speed == 0:
                 pass
             else:
-                # time_space_temp = road.positionArray[road.lane_for_st_figure, road.limit_begin : road.limit_end]
-                # .tolist()
-                # for i in range(0, len(time_space_temp)):
-                #     if time_space_temp[i] == 0:
-                #         time_space_y.append(time_space_temp[i] + time_space_count)
-                #         time_space_x.append(i)
                 speed_list.append(interval_speed)
                 flow_list.append(interval_flow)
-                # TODO 密度直接这么算出来可以吗？
                 density_list.append((interval_flow / interval_travel_speed if interval_travel_speed != 0 else 0))
                 # time_space_count += 1
             '''写入CSV'''
@@ -130,13 +105,9 @@ def road_visualization_dynamic(road, time_interval, pause_time):
             csv_write = csv.writer(out, dialect='excel')
             csv_write.writerow(speed_list)
             csv_write.writerow(flow_list)
+            csv_write.writerow(density_list)
             '''写入CSV'''
         '''每t时间步展示数据end'''
-        str_interval_flow = 'interval flow= %d' % interval_flow
-        interval_travel_speed = interval_speed / interval_flow if interval_flow != 0 else 0
-        str_interval_traval_speed = 'interval travel speed= %.2f' % interval_travel_speed
-        str_interval_density = 'interval density= %.2f' % (interval_flow/interval_travel_speed if interval_travel_speed != 0 else 0)
-        str_interval_travel_time = 'interval travel time= %.2f' % (interval_travel_time/interval_flow if interval_flow != 0 else 0)
         plt.imshow(road.positionArray, cmap=cmap)
         plt.axis('off')
         plt.pause(pause_time)
@@ -145,13 +116,10 @@ def road_visualization_dynamic(road, time_interval, pause_time):
 
 if __name__ == '__main__':
 
-    colors = ['white', 'blue', 'black']
-    cmap = mpl.colors.ListedColormap(colors)
-
     time_interval = 10
     pause_time = 1
 
     road = road.Road()
-    road_visualization_dynamic(road, time_interval, pause_time)
+    road_visualization(road, time_interval, pause_time)
 
 
