@@ -7,6 +7,7 @@ import car as car
 import pandas as pd
 import random
 import csv
+import time
 
 
 def f_1(x, A, B):
@@ -57,10 +58,17 @@ def basic_figure():
     plt.show()
 
 
-def space_time():
-    df = pd.read_csv('space_time.csv', encoding='utf-8').fillna(0)
-    plt.scatter()
-    print df
+def if_red(t, road):
+    """计算当前是否为红灯"""
+    temp = int(t % 20)
+    if temp < road.red_time:
+        road.position_array[road.block_lane, road.existPosition + 1] = 2
+        road.is_red = True
+        return True
+    else:
+        road.position_array[road.block_lane, road.existPosition + 1] = 3
+        road.is_red = False
+        return False
 
 
 def road_visualization(road, time_interval, pause_time):
@@ -74,10 +82,14 @@ def road_visualization(road, time_interval, pause_time):
     """Turn interactive mode on."""
     plt.ion()
     for t in range(road.simulation_times):
+        time_begin = time.time();
         """入口随机入车 begin"""
         for i in range(1, road.lanes + 1):
+            if i == 5:
+                continue
             carr = car.Car()
-            if random.uniform(0, 1) < road.prob_in:
+            # if random.uniform(0, 1) < road.prob_in:
+            if random.uniform(0, 1) < 10:
                 # TODO 初始速度的随机分布
                 car.Car.new_car(carr, road, 0, i)
         """入口随机入车 end"""
@@ -108,10 +120,14 @@ def road_visualization(road, time_interval, pause_time):
             csv_write.writerow(density_list)
             '''写入CSV'''
         '''每t时间步展示数据end'''
-        plt.imshow(road.positionArray, cmap=cmap)
+        plt.imshow(road.position_array, cmap=cmap)
         plt.axis('off')
         plt.pause(pause_time)
-        road.progress(road.limit_speed)
+        # road.progress(road.limit_speed)
+        if_red(t, road)
+        road.sim()
+        time_end = time.time();
+        print "当前时间步：" + str(t) + "，耗时：" + str(time_end - time_begin)
     plt.ioff()
 
 if __name__ == '__main__':

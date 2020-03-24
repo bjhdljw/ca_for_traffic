@@ -2,8 +2,8 @@
 #!/usr/bin/env python
 import random
 
-SIDE_SIDE = 0.8
-MAIN_MAIN = 0.8
+SIDE_SIDE = 0.5
+MAIN_MAIN = -1
 
 
 class Car(object):
@@ -14,17 +14,17 @@ class Car(object):
 
     @staticmethod
     def new_car(car, road, speed, lane):
-        if road.positionArray[lane, 0] == 0:
-            road.speedArray[lane, 0: car.length] = speed
-            road.positionArray[lane, 0: car.length] = 1
-            road.speedCounter[lane, 0: car.length] = 1
+        if road.position_array[lane, 0] == 0:
+            road.speed_array[lane, 0: car.length] = speed
+            road.position_array[lane, 0: car.length] = 1
+            road.speed_counter[lane, 0: car.length] = 1
             if lane == 6 or lane == 7:
                 if random.uniform(0, 1) <= SIDE_SIDE:
-                    road.desArray[lane, car.length] = 3
+                    road.des_array[lane, car.length] = 3
                 else:
-                    road.desArray[lane, car.length] = 4
+                    road.des_array[lane, car.length] = 4
             elif 5 > lane > 0:
                 if random.uniform(0, 1) <= MAIN_MAIN:
-                    road.desArray[lane, car.length] = 1
+                    road.des_array[lane, car.length] = 1
                 else:
-                    road.desArray[lane, car.length] = 2
+                    road.des_array[lane, car.length] = 2
