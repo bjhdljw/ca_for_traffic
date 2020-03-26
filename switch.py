@@ -109,3 +109,38 @@ class SwitchRule(object):
             road.speed_counter[i, j] = 0
             road.des_array[i, j] = 0
             road.switch_counter += 1
+
+
+class NearExistSwitchRule(SwitchRule):
+    """
+    临近快速路出口，但是无法驶离快速路的路段，只需要des_array[i, j] == 2的车辆在快速路1、2、3车道的换道情况，其他情况和基础换
+    道条件相同；
+    """
+
+    @staticmethod
+    def switch_condition(i, j, road, right_change_condition, left_change_condition):
+        """des_array[i, j] == 2的车辆换道条件单独处理，其余车辆换道条件和基础换道条件相同"""
+        if road.position_array[i, j] == 1:
+            if road.des_array[i, j] == 2:
+                if int(road.switch_helper_array[i, j]) == 1 \
+                        or int(road.switch_helper_array[i, j]) == 2 \
+                        or int(road.switch_helper_array[i, j]) == 3:
+                    change = True
+                    if road.position_array[i + 1, j] == 1 or road.position_array[i + 1, j] == 2 or road.position_array[i + 1, j] == 3:
+                        change = False
+                    right_change_condition[i, j] = change
+            else:
+                SwitchRule.switch_condition(i, j, road, right_change_condition, left_change_condition)
+
+    @staticmethod
+    def switch_purpose(i, j, road, gap, right_change_condition, right_change_real, left_change_condition,
+                       left_change_real):
+        """des_array[i, j] == 2的车辆换道动机单独处理，其余车辆换道条件和基础换道条件相同"""
+        if road.position_array[i, j] == 1:
+            if road.des_array[i, j] == 2:
+                if (int(road.switch_helper_array[i, j]) == 1 or int(road.switch_helper_array[i, j]) == 2 or int(road.switch_helper_array[i, j]) == 3) \
+                        and right_change_condition[i, j]:
+                    right_change_real[i, j] = 1
+            else:
+                SwitchRule.switch_purpose(i, j, road, gap, right_change_condition, right_change_real,
+                                          left_change_condition, left_change_real)
