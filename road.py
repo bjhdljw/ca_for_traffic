@@ -390,7 +390,11 @@ class InterweaveRoad(Road):
         self.position_array[self.block_lane, self.entrancePosition + 1 :] = WALL
 
     def sim(self):
-        """分模块执行规则"""
+        """
+        分模块执行规则
+        换道模型的三个步骤都为非模板代码
+        跟驰模型只有减速步是非模板代码
+        """
         '''一个时间步内的临时数组'''
         left_change_condition = np.zeros(self.position_array.shape)
         right_change_condition = np.zeros(self.position_array.shape)
@@ -415,9 +419,8 @@ class InterweaveRoad(Road):
             f.update_variable()
             for j in range(self.position_array.shape[1] - 1, -1, -1):
                 follow.FollowRule.slow_down_step(i, j, gap, self, f)
-        '''随机慢化步为模板代码'''
+        '''随机慢化步、位置更新步为模板代码'''
         follow.FollowRule.random_slow_down(self)
-        '''位置更新步为模板代码'''
         follow.FollowRule.update_position(self)
 
 
