@@ -4,7 +4,8 @@ import numpy as np
 import sys
 import random
 import ConfigParser
-import plot
+import follow
+import switch
 
 HAVECAR = 1
 WALL = 3
@@ -42,6 +43,8 @@ class Road(object):
         self.red_time = cp.getint('road', 'red_time')
         # 当前是否为红灯
         self.is_red = True
+        #交织区长度
+        self.interweave_length = cp.getint('road', 'interweave_length')
         # 初始化道路换道辅助信息数组
         '''
         switchHelperArray值-含义对应关系：
@@ -65,8 +68,8 @@ class Road(object):
         self.position_array[0, :] = WALL
         self.position_array[self.lanes + 1, :] = WALL
         self.position_array[self.block_lane, : self.existPosition] = WALL
-        self.position_array[self.block_lane, self.existPosition + 1 : self.entrancePosition] = WALL
-        self.position_array[self.block_lane, self.entrancePosition + 1 :] = WALL
+        self.position_array[self.block_lane - 1, self.existPosition + 1: self.entrancePosition] = WALL
+        self.position_array[self.block_lane, self.entrancePosition + 1:] = WALL
         self.speed_array[0, :] = WALL
         self.speed_array[self.lanes + 1, :] = WALL
         self.speed_array[self.block_lane, :] = WALL
@@ -74,7 +77,7 @@ class Road(object):
         self.speed_array[self.lanes + 1, :] = WALL
         self.speed_array[self.block_lane, :] = WALL
         # 获取车辆最大速度
-        self.vmax = cp.getint('road', 'vmax')
+        self.v_max = cp.getint('road', 'v_max')
         # 获取进车概率
         self.prob_in = cp.getfloat('road', 'pro_in')
         # 获取限速开关
@@ -95,7 +98,7 @@ class Road(object):
         # 获取限速区限速值
         self.limit_speed = cp.getint('road', 'limit_speed')
         # 获取事故点开关
-        self.iscongestion = cp.getboolean('road', 'iscongestion')
+        self.iscongestion = cp.getboolean('road', 'is_congestion')
         # 获取单车道限速值
         self.vmax1 = cp.getint('road', 'vmax1')
         self.vmax2 = cp.getint('road', 'vmax2')
@@ -121,19 +124,19 @@ class Road(object):
     def get_vmax(self, lane):
         """获取当前车道限制速度"""
         if lane == 1:
-            return self.vmax1
+            return self.v_max1
         elif lane == 2:
-            return self.vmax2
+            return self.v_max2
         elif lane == 3:
-            return self.vmax3
+            return self.v_max3
         elif lane == 4:
-            return self.vmax4
+            return self.v_max4
         elif lane == 5:
-            return self.vmax5
+            return self.v_max5
         elif lane == 6:
-            return self.vmax6
+            return self.v_max6
         elif lane == 7:
-            return self.vmax7
+            return self.v_max7
 
     def sim(self):
         gap = np.zeros(self.position_array.shape)
@@ -142,13 +145,15 @@ class Road(object):
         left_change_real = np.zeros(self.position_array.shape)
         right_change_real = np.zeros(self.position_array.shape)
 
-        for i in range(1, self.position_array.shape[0] - 1):
+        for i in range(1, self.lanes + 1):
             CommonFollowRule.accelerate_step(i, self.position_array, self, gap, self.speed_array, self.speed_counter
                                              , self.limit_speed)
         for i in range(1, self.lanes + 1):
             for j in range(self.position_array.shape[1] - 1, -1, -1):
-                CommonSwitchRule.switch_condition(i, j, self.position_array, self, right_change_condition, left_change_condition)
-                CommonSwitchRule.switch_purpose(i, j, self.position_array, self, self.position_array, gap, right_change_real, right_change_condition, left_change_condition, left_change_real, self.vmax, self.switch_lane_prob)
+                # CommonSwitchRule.switch_condition(i, j, self.position_array, self, right_change_condition, left_change_condition)
+                ExistSwitchRule.switch_condition(i, j, self.position_array, self, right_change_condition, left_change_condition)
+                # CommonSwitchRule.switch_purpose(i, j, self.position_array, self, self.position_array, gap, right_change_real, right_change_condition, left_change_condition, left_change_real, self.vmax, self.switch_lane_prob)
+                ExistSwitchRule.switch_purpose(i, j, self.position_array, self, self.position_array, gap, right_change_real, right_change_condition, left_change_condition, left_change_real, self.vmax, self.switch_lane_prob)
                 CommonSwitchRule.switch(i, j, self.position_array, self.speed_array, self.speed_counter, self.des_array, self, left_change_real, right_change_real)
         gap = np.zeros(self.position_array.shape)
         for i in range(1, self.position_array.shape[0] - 1):
@@ -157,7 +162,7 @@ class Road(object):
             # CommonFollowRule.slow_down_step(i, self.position_array, self.speed_array, gap, self, self.limit_speed)
             ExistFollowRule.slow_down_step(i, self.position_array, self.speed_array, gap, self, self.limit_speed)
         for i in range(1, self.position_array.shape[0] - 1):
-            CommonFollowRule.update_position(i, self.position_array, self.speed_array, self, self.speed_counter, self.des_array)
+            CommonFollowRule.update_position(i, self.position_array, self.speed_array, self, self.speed_counter)
 
     def progress(self, speed):
         """道路状态演化函数"""
@@ -295,6 +300,127 @@ class Road(object):
         return position_array
 
 
+class InterweaveRoad(Road):
+    def __init__(self):
+
+        # 从road.conf配置文件获取道路初始化参数
+        cp = ConfigParser.SafeConfigParser()
+        cp.read('road.conf')
+
+        # 仿真时长（时间步数）
+        self.simulation_times = cp.getint('road', 'simulation_times')
+        # 车道数量
+        self.lanes = cp.getint('road', 'lanes')
+        # 车道长度（单位：元胞）
+        self.length = cp.getint('road', 'road_length')
+        # 快速路和辅路之间屏障位置
+        self.block_lane = cp.getint('road', 'block_lane')
+        self.existPosition = cp.getint('road', 'exist_position')
+        self.entrancePosition = cp.getint('road', 'entrance_position')
+        # 红灯时长
+        self.red_time = cp.getint('road', 'red_time')
+        # 当前是否为红灯
+        self.is_red = True
+        # 交织区长度
+        self.interweave_length = cp.getint('road', 'interweave_length')
+        # 获取车辆最大速度
+        self.v_max = cp.getint('road', 'v_max')
+        # 获取进车概率
+        self.prob_in = cp.getfloat('road', 'pro_in')
+        # 获取限速开关
+        self.is_limit = cp.getboolean('road', 'islimit')
+        # 获取限速区速起始位置
+        self.limit_begin = cp.getint('road', 'limit_begin')
+        # 获取限速区结束位置
+        self.limit_end = cp.getint('road', 'limit_end')
+        # 设置换道概率
+        self.switch_lane_prob = cp.getint('road', 'switch_lane_prob')
+        # 换道次数统计
+        self.switch_counter = 0
+        # 获取限速区限速值
+        self.limit_speed = cp.getint('road', 'limit_speed')
+        # 获取事故点开关
+        self.is_congestion = cp.getboolean('road', 'is_congestion')
+        self.switch_left_prob = cp.getfloat('road', 'switch_left_prob')
+        # 获取单车道限速值
+        self.v_max1 = cp.getint('road', 'v_max1')
+        self.v_max2 = cp.getint('road', 'v_max2')
+        self.v_max3 = cp.getint('road', 'v_max3')
+        self.v_max4 = cp.getint('road', 'v_max4')
+        self.v_max5 = cp.getint('road', 'v_max5')
+        self.v_max6 = cp.getint('road', 'v_max6')
+        self.v_max7 = cp.getint('road', 'v_max7')
+
+        # 初始化道路基本信息数组（部分变化）
+        self.position_array = np.zeros((self.lanes + 2, self.length))
+        # 初始化道路换道辅助信息数组（固定）
+        self.switch_helper_array = np.zeros((self.lanes + 2, self.length))
+        # 初始化车速信息数组（变化）
+        self.speed_array = np.zeros((self.lanes + 2, self.length))
+        # 行程时间计数数组（变化，单位：时间步）
+        self.speed_counter = np.zeros((self.lanes + 2, self.length))
+        # 车辆目的地信息数组（变化）
+        self.des_array = np.zeros((self.lanes + 2, self.length))
+
+        '''
+        初始化道路换道辅助信息数组
+        switchHelperArray值-含义对应关系：
+        0：栏杆
+        1：快速路最左侧车道
+        2-3：快速路中间N条车道
+        4：快速路最右侧车道
+        5：辅路左侧车道
+        6：辅路右侧车道
+        '''
+        self.switch_helper_array[0, :] = 0
+        self.switch_helper_array[1, :] = 1
+        self.switch_helper_array[2, :] = 2
+        self.switch_helper_array[3, :] = 3
+        self.switch_helper_array[4, :] = 4
+        self.switch_helper_array[5, :] = 0
+        self.switch_helper_array[6, :] = 6
+        self.switch_helper_array[7, :] = 7
+        self.switch_helper_array[8, :] = 0
+
+        '''初始化道路边界'''
+        self.position_array[0, :] = WALL
+        self.position_array[self.lanes + 1, :] = WALL
+        self.position_array[self.block_lane, : self.existPosition] = WALL
+        self.position_array[self.block_lane - 1, self.existPosition + 1: self.entrancePosition] = WALL
+        self.position_array[self.block_lane, self.entrancePosition + 1 :] = WALL
+
+    def sim(self):
+        """分模块执行规则"""
+        '''一个时间步内的临时数组'''
+        left_change_condition = np.zeros(self.position_array.shape)
+        right_change_condition = np.zeros(self.position_array.shape)
+        left_change_real = np.zeros(self.position_array.shape)
+        right_change_real = np.zeros(self.position_array.shape)
+
+        '''加速步、gap计算步为模板代码'''
+        follow.FollowRule.accelerate_step(self)
+        gap = follow.FollowRule.compute_gap(self)
+        '''三个换道模块都非模板代码'''
+        for i in range(1, self.lanes + 1):
+            for j in range(self.position_array.shape[1] - 1, -1, -1):
+                switch.SwitchRule.switch_condition(i, j, self, right_change_condition, left_change_condition)
+                switch.SwitchRule.switch_purpose(i, j, self, gap, right_change_condition, right_change_real, left_change_condition, left_change_real)
+        for i in range(1, self.lanes + 1):
+            for j in range(self.position_array.shape[1] - 1, -1, -1):
+                switch.SwitchRule.switch(i, j, self, left_change_real, right_change_real)
+        '''gap计算步为模板代码'''
+        gap = follow.FollowRule.compute_gap(self)
+        f = follow.FollowRule()
+        for i in range(1, self.lanes + 1):
+            f.update_variable()
+            for j in range(self.position_array.shape[1] - 1, -1, -1):
+                follow.FollowRule.slow_down_step(i, j, gap, self, f)
+        '''随机慢化步为模板代码'''
+        follow.FollowRule.random_slow_down(self)
+        '''位置更新步为模板代码'''
+        follow.FollowRule.update_position(self)
+
+
 def switch_lane(position_array, i, lanes, vmax, right_change_condition, left_change_condition, speed_array, gap, left_change_real, right_change_real, switch_lane_prob, speed_counter, road, islimit, des_array):
     for j in range(position_array.shape[1] - 1, -1, -1):
         '''计算换道条件begin'''
@@ -418,21 +544,12 @@ class CommonFollowRule(object):
         gap_position_temp = sys.maxint
         """从道路最前面的一辆车开始遍历"""
         for j in range(position_array.shape[1] - 1, -1, -1):
-            '''确定当前的vmax：vmax or limit_speed start'''
             vmax = road.get_vmax(i)
-            if position_array[i, j] == 1:
-                """如果存在限速区，并且当前车辆位于限速区内，更新最大限制速度"""
-                if position_array[i, j] == 1 and road.is_limit and road.limit_begin <= j <= road.limit_end:
-                    is_limit = True
-                    vmax = limit_speed
-                else:
-                    is_limit = False
-            '''确定当前的vmax：vmax or limit_speed end'''
             '''加速步骤begin'''
             speed_array[i, j] = min(speed_array[i, j] + 1, vmax)
             '''加速步骤end'''
             '''计算前车距离begin'''
-            if position_array[i, j] == 1 or position_array[i, j] == 2:
+            if position_array[i, j] == 1 or position_array[i, j] == 2 or position_array[i, j] == WALL:
                 """检查车辆间距是否计算正确，不正确抛出异常"""
                 if gap_position_temp - j - 1 < 0:
                     raise RuntimeError('gap error')
@@ -449,7 +566,7 @@ class CommonFollowRule(object):
     def compute_gap(i, position_array, gap):
         gap_position_temp = sys.maxint
         for j in range(position_array.shape[1] - 1, -1, -1):
-            if position_array[i, j] == 1 or position_array[i, j] == 2:
+            if position_array[i, j] == 1 or position_array[i, j] == 2 or position_array[i, j] == WALL:
                 if gap_position_temp - j - 1 < 0:
                     raise RuntimeError('gap error')
                 gap[i, j] = gap_position_temp - j - 1
@@ -462,16 +579,16 @@ class CommonFollowRule(object):
         """记录前车距离的临时变量"""
         gap_position_temp2 = sys.maxint
         for j in range(position_array.shape[1] - 1, -1, -1):
-            '''确定当前的vmax：vmax or limit_speed'''
-            vmax = limit_speed if (position_array[
-                                       i, j] == 1 and road.is_limit and road.limit_begin <= j <= road.limit_end) else road.vmax
-            '''确定当前的vmax：vmax or limit_speed'''
             '''减速步begin'''
-            if position_array[i, j] == 1 or position_array[i, j] == 2:
+            if position_array[i, j] == 1 or position_array[i, j] == 2 or position_array[i, j] == WALL:
                 if position_array[i, j] == 2:
                     pass
+                if position_array[i, j] == WALL:
+                    pass
                 # 如果前方不是车辆，而是障碍物的话，不需要考虑前车速度，使用NaSch模型减速步
-                elif gap_position_temp2 < position_array.shape[1] and position_array[i, gap_position_temp2] == 2:
+                elif gap_position_temp2 < position_array.shape[1] \
+                        and (position_array[i, gap_position_temp2] == 2
+                             or position_array[i, gap_position_temp2] == WALL):
                     temp_speed = min(speed_array[i, j], gap[i, j])
                     speed_array[i, j] = max(temp_speed, 0)
                 elif count == 1:
@@ -500,7 +617,7 @@ class CommonFollowRule(object):
             '''随机慢化步end'''
 
     @staticmethod
-    def update_position(i, position_array, speed_array, road, speed_counter, des_rray):
+    def update_position(i, position_array, speed_array, road, speed_counter):
         for j in range(position_array.shape[1] - 1, -1, -1):
             '''Nasch位置更新步begin'''
             if position_array[i, j] == 1:
@@ -517,11 +634,11 @@ class CommonFollowRule(object):
                         position_array[i, position_next] = 1
                         speed_array[i, position_next] = speed_array[i, j]
                         speed_counter[i, position_next] = speed_counter[i, j]
-                        des_rray[i, position_next] = des_rray[i, j]
+                        road.des_array[i, position_next] = road.des_array[i, j]
                     position_array[i, j] = 0
                     speed_array[i, j] = 0
                     speed_counter[i, j] = 0
-                    des_rray[i, j] = 0
+                    road.des_array[i, j] = 0
             '''Nasch位置更新步end'''
 
 
@@ -545,7 +662,6 @@ class ExistFollowRule(CommonFollowRule):
                             and position_array[i + 2, suppose_next_position] == 0:
                         pass
                     else:
-                        print "Got it"
                         temp_speed = min(speed_array[i, j], road.existPosition - j)
                         speed_array[i, j] = max(temp_speed, 0)
                     got_exist_first_car = True
@@ -556,7 +672,6 @@ class ExistFollowRule(CommonFollowRule):
                             and position_array[i + 2, suppose_next_position] == 0:
                         pass
                     else:
-                        print "Got it"
                         temp_speed = min(speed_array[i, j], road.existPosition - j)
                         speed_array[i, j] = max(temp_speed, 0)
                     got_exist_first_car = True
@@ -567,7 +682,6 @@ class ExistFollowRule(CommonFollowRule):
                             and position_array[i + 2, suppose_next_position] == 0:
                         pass
                     else:
-                        print "Got it"
                         temp_speed = min(speed_array[i, j], road.existPosition - j)
                         speed_array[i, j] = max(temp_speed, 0)
                     got_exist_first_car = True
@@ -723,10 +837,61 @@ class ExistSwitchRule(CommonSwitchRule):
     """快速路出口上游（不能直接驶出快速路的距离），快速路内车辆换道规则"""
 
     @staticmethod
-    def switch_purpose(i, j, position_array, road, speed_array, gap, right_change_real, right_change_condition,
-                       left_change_condition, left_change_real, v_max, switch_lane_prob, des_array):
+    def switch_condition(i, j, position_array, road, right_change_condition, left_change_condition):
         if position_array[i, j] == 1:
-            if int(des_array[i, j]) == 1:
+            if int(road.des_array[i, j]) == 1:
+                '''快速路直行车辆'''
+                if int(road.switchHelperArray[i, j]) == 1:
+                    change = True
+                    temp_v_max = road.get_vmax(i + 1)
+                    for r in range(j - int(temp_v_max) - 1, j + 1):
+                        if position_array[i + 1, r] == 1 or position_array[i + 1, r] == 2:
+                            change = False
+                            break
+                    right_change_condition[i, j] = change
+                elif int(road.switchHelperArray[i, j]) == 2:
+                    change_left = True
+                    change_right = True
+                    temp_v_max_l = road.get_vmax(i - 1)
+                    temp_v_max_r = road.get_vmax(i + 1)
+                    for l in range(j - int(temp_v_max_l) - 1, j + 1):
+                        if position_array[i - 1, l] == 1 or position_array[i - 1, l] == 2:
+                            change_left = False
+                            break
+                    for r in range(j - int(temp_v_max_r) - 1, j + 1):
+                        if position_array[i + 1, r] == 1 or position_array[i + 1, r] == 2:
+                            change_right = False
+                            break
+                    left_change_condition[i, j] = change_left
+                    right_change_condition[i, j] = change_right
+                elif int(road.switchHelperArray[i, j]) == 3:
+                    change = True
+                    temp_v_max = road.get_vmax(i - 1)
+                    for l in range(j - temp_v_max - 1, j + 1):
+                        if position_array[i - 1, l] == 1 or position_array[i - 1, l] == 2:
+                            change = False
+                            break
+                    left_change_condition[i, j] = change
+                elif int(road.switchHelperArray[i, j]) == 4 \
+                        and not position_array[i - 1, j] == 1 \
+                        and not position_array[i - 1, j] == 2:
+                    left_change_condition[i, j] = 1
+            elif int(road.des_array[i, j]) == 2:
+                '''快速路准备驶出车辆'''
+                if (int(road.switchHelperArray[i, j]) == 1
+                    or int(road.switchHelperArray[i, j]) == 2
+                    or int(road.switchHelperArray[i, j]) == 3) \
+                        and not position_array[i + 1, j] == 1 \
+                        and not position_array[i + 1, j] == 2:
+                    right_change_condition[i, j] = 1
+                elif int(road.switchHelperArray[i, j]) == 4:
+                    pass
+
+    @staticmethod
+    def switch_purpose(i, j, position_array, road, speed_array, gap, right_change_real, right_change_condition,
+                       left_change_condition, left_change_real, v_max, switch_lane_prob):
+        if position_array[i, j] == 1:
+            if int(road.des_array[i, j]) == 1:
                 '''快速路直行车辆'''
                 if int(road.switchHelperArray[i, j]) == 1 \
                         and right_change_condition[i, j] == 1 \
@@ -752,7 +917,7 @@ class ExistSwitchRule(CommonSwitchRule):
                     left_change_real[i, j] = 1
                 elif int(road.switchHelperArray[i, j]) == 4 and left_change_condition[i, j] == 1:
                     left_change_real[i, j] = 1
-            elif int(des_array[i, j]) == 2:
+            elif int(road.des_array[i, j]) == 2:
                 '''快速路准备驶出车辆'''
                 if int(road.switchHelperArray[i, j]) == 1 and right_change_condition[i, j] == 1:
                     right_change_real[i, j] = 1
@@ -766,5 +931,10 @@ class ExistSwitchRule(CommonSwitchRule):
 
 class FastToSide(CommonSwitchRule):
     """快速路可直接换道至辅路处换道规则"""
-    pass
+
+    @staticmethod
+    def switch_condition(i, j, position_array, road, right_change_condition, left_change_condition):
+        pass
+
+
 

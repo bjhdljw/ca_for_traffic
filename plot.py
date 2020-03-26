@@ -62,13 +62,20 @@ def if_red(t, road):
     """计算当前是否为红灯"""
     temp = int(t % 20)
     if temp < road.red_time:
-        road.position_array[road.block_lane, road.existPosition + 1] = 2
+        road.position_array[road.block_lane - 1, road.existPosition + 1] = 2
         road.is_red = True
         return True
     else:
-        road.position_array[road.block_lane, road.existPosition + 1] = 3
+        road.position_array[road.block_lane - 1, road.existPosition + 1] = 3
         road.is_red = False
         return False
+
+
+def check_something(road):
+    for i in range(1, road.lanes + 1):
+        for j in range(1, road.length):
+            if road.des_array[i, j] == 1:
+                print("check false")
 
 
 def road_visualization(road, time_interval, pause_time):
@@ -88,8 +95,7 @@ def road_visualization(road, time_interval, pause_time):
             if i == 5:
                 continue
             carr = car.Car()
-            # if random.uniform(0, 1) < road.prob_in:
-            if random.uniform(0, 1) < 10:
+            if random.uniform(0, 1) < road.prob_in:
                 # TODO 初始速度的随机分布
                 car.Car.new_car(carr, road, 0, i)
         """入口随机入车 end"""
@@ -99,25 +105,25 @@ def road_visualization(road, time_interval, pause_time):
         if t % time_interval == 0:
             # 计算当前时间周期内各项数据
             # 流量
-            interval_flow = road.count_flow - temp_flow
-            temp_flow = road.count_flow
+            # interval_flow = road.count_flow - temp_flow
+            # temp_flow = road.count_flow
             # 速度
-            interval_speed = road.travel_speed - temp_speed
-            temp_speed = road.travel_speed
-            interval_travel_speed = interval_speed / interval_flow if interval_flow != 0 else 0
-            if interval_flow == 0 and interval_speed == 0:
-                pass
-            else:
-                speed_list.append(interval_speed)
-                flow_list.append(interval_flow)
-                density_list.append((interval_flow / interval_travel_speed if interval_travel_speed != 0 else 0))
-                # time_space_count += 1
-            '''写入CSV'''
-            out = open('speed-flow-storage.csv', 'w')
-            csv_write = csv.writer(out, dialect='excel')
-            csv_write.writerow(speed_list)
-            csv_write.writerow(flow_list)
-            csv_write.writerow(density_list)
+            # interval_speed = road.travel_speed - temp_speed
+            # temp_speed = road.travel_speed
+            # interval_travel_speed = interval_speed / interval_flow if interval_flow != 0 else 0
+            # if interval_flow == 0 and interval_speed == 0:
+            #     pass
+            # else:
+            #     speed_list.append(interval_speed)
+            #     flow_list.append(interval_flow)
+            #     density_list.append((interval_flow / interval_travel_speed if interval_travel_speed != 0 else 0))
+            #     # time_space_count += 1
+            # '''写入CSV'''
+            # out = open('speed-flow-storage.csv', 'w')
+            # csv_write = csv.writer(out, dialect='excel')
+            # csv_write.writerow(speed_list)
+            # csv_write.writerow(flow_list)
+            # csv_write.writerow(density_list)
             '''写入CSV'''
         '''每t时间步展示数据end'''
         plt.imshow(road.position_array, cmap=cmap)
@@ -126,6 +132,7 @@ def road_visualization(road, time_interval, pause_time):
         # road.progress(road.limit_speed)
         if_red(t, road)
         road.sim()
+        check_something(road)
         time_end = time.time();
         print "当前时间步：" + str(t) + "，耗时：" + str(time_end - time_begin)
     plt.ioff()
@@ -135,7 +142,8 @@ if __name__ == '__main__':
     time_interval = 10
     pause_time = 1
 
-    road = road.Road()
+    road = road.InterweaveRoad()
+    print (road.position_array.shape[0])
     road_visualization(road, time_interval, pause_time)
 
 
