@@ -407,18 +407,22 @@ class InterweaveRoad(Road):
         '''三个换道模块都非模板代码'''
         for i in range(1, self.lanes + 1):
             for j in range(self.position_array.shape[1] - 1, -1, -1):
-                switch.SwitchRule.switch_condition(i, j, self, right_change_condition, left_change_condition)
-                switch.SwitchRule.switch_purpose(i, j, self, gap, right_change_condition, right_change_real, left_change_condition, left_change_real)
+                # switch.SwitchRule.switch_condition(i, j, self, right_change_condition, left_change_condition)
+                # switch.SwitchRule.switch_purpose(i, j, self, gap, right_change_condition, right_change_real, left_change_condition, left_change_real)
+                switch.NearExistSwitchRule.switch_condition(i, j, self, right_change_condition, left_change_condition)
+                switch.NearExistSwitchRule.switch_purpose(i, j, self, gap, right_change_condition, right_change_real, left_change_condition, left_change_real)
         for i in range(1, self.lanes + 1):
             for j in range(self.position_array.shape[1] - 1, -1, -1):
                 switch.SwitchRule.switch(i, j, self, left_change_real, right_change_real)
         '''gap计算步为模板代码'''
         gap = follow.FollowRule.compute_gap(self)
+        '''减速步是跟驰模型中唯一的非模版代码'''
         f = follow.FollowRule()
         for i in range(1, self.lanes + 1):
             f.update_variable()
             for j in range(self.position_array.shape[1] - 1, -1, -1):
-                follow.FollowRule.slow_down_step(i, j, gap, self, f)
+                # follow.FollowRule.slow_down_step(i, j, gap, self, f)
+                follow.ExistFollowRule.slow_down_step(i, j, gap, self, f)
         '''随机慢化步、位置更新步为模板代码'''
         follow.FollowRule.random_slow_down(self)
         follow.FollowRule.update_position(self)

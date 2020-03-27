@@ -122,6 +122,11 @@ class NearExistSwitchRule(SwitchRule):
         """des_array[i, j] == 2的车辆换道条件单独处理，其余车辆换道条件和基础换道条件相同"""
         if road.position_array[i, j] == 1:
             if road.des_array[i, j] == 2:
+                if i == road.block_lane - 1 \
+                        and road.position_array[i + 1, j] == 0 \
+                        and road.position_array[i + 2, j] == 0 \
+                        and not road.is_red:
+                    right_change_condition[i, j] = True
                 if int(road.switch_helper_array[i, j]) == 1 \
                         or int(road.switch_helper_array[i, j]) == 2 \
                         or int(road.switch_helper_array[i, j]) == 3:
@@ -138,9 +143,30 @@ class NearExistSwitchRule(SwitchRule):
         """des_array[i, j] == 2的车辆换道动机单独处理，其余车辆换道条件和基础换道条件相同"""
         if road.position_array[i, j] == 1:
             if road.des_array[i, j] == 2:
+                if i == road.block_lane - 1 and road.position_array[i + 1, j] == 0 and right_change_condition[i, j] == 1:
+                    right_change_real = 1
                 if (int(road.switch_helper_array[i, j]) == 1 or int(road.switch_helper_array[i, j]) == 2 or int(road.switch_helper_array[i, j]) == 3) \
                         and right_change_condition[i, j]:
                     right_change_real[i, j] = 1
             else:
                 SwitchRule.switch_purpose(i, j, road, gap, right_change_condition, right_change_real,
                                           left_change_condition, left_change_real)
+
+    @staticmethod
+    def switch(i, j, road, left_change_real, right_change_real):
+        if i == road.block_lane - 1 \
+                and road.position_array[i, j] == 1 \
+                and road.des_array[i, j] == 2 \
+                and road.position_array[i + 1, j] == 0 \
+                and right_change_real[i, j] == 1:
+            road.position_array[i + 2, j] = 1
+            road.speed_array[i + 2, j] = road.speed_array[i, j]
+            road.speed_counter[i + 2, j] = road.speed_counter[i, j]
+            road.des_array[i + 2, j] = road.des_array[i, j]
+            road.position_array[i, j] = 0
+            road.speed_array[i, j] = 0
+            road.speed_counter[i, j] = 0
+            road.des_array[i, j] = 0
+            road.switch_counter += 1
+        else:
+            SwitchRule.switch(i, j, left_change_real, right_change_real)

@@ -149,7 +149,7 @@ class ExistFollowRule(FollowRule):
             else:
                 d = max(0, gap[i, self.gap_position_temp2] - 1)
                 v_max_before = road.limit_speed if (
-                        road.is_limit and road.limit_begin <= self.gap_position_temp2 <= road.limit_end) else road.vmax
+                        road.is_limit and road.limit_begin <= self.gap_position_temp2 <= road.limit_end) else road.get_vmax(i)
                 vq = min(v_max_before - 1, d)
                 vq = min(vq, road.speed_array[i, self.gap_position_temp2])
                 road.speed_array[i, j] = min(road.speed_array[i, j], gap[i, j] + vq)
