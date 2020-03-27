@@ -1,5 +1,5 @@
-#coding:utf-8
-#!/usr/bin/env python
+# coding:utf-8
+# !/usr/bin/env python
 import numpy as np
 import sys
 import random
@@ -413,7 +413,8 @@ class InterweaveRoad(Road):
                 switch.NearExistSwitchRule.switch_purpose(i, j, self, gap, right_change_condition, right_change_real, left_change_condition, left_change_real)
         for i in range(1, self.lanes + 1):
             for j in range(self.position_array.shape[1] - 1, -1, -1):
-                switch.SwitchRule.switch(i, j, self, left_change_real, right_change_real)
+                # switch.SwitchRule.switch(i, j, self, left_change_real, right_change_real)
+                switch.NearExistSwitchRule.switch(i, j, self, left_change_real, right_change_real)
         '''gap计算步为模板代码'''
         gap = follow.FollowRule.compute_gap(self)
         '''减速步是跟驰模型中唯一的非模版代码'''

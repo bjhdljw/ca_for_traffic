@@ -135,6 +135,7 @@ class NearExistSwitchRule(SwitchRule):
                         change = False
                     right_change_condition[i, j] = change
             else:
+                print ("fault")
                 SwitchRule.switch_condition(i, j, road, right_change_condition, left_change_condition)
 
     @staticmethod
@@ -144,7 +145,7 @@ class NearExistSwitchRule(SwitchRule):
         if road.position_array[i, j] == 1:
             if road.des_array[i, j] == 2:
                 if i == road.block_lane - 1 and road.position_array[i + 1, j] == 0 and right_change_condition[i, j] == 1:
-                    right_change_real = 1
+                    right_change_real[i, j] = 1
                 if (int(road.switch_helper_array[i, j]) == 1 or int(road.switch_helper_array[i, j]) == 2 or int(road.switch_helper_array[i, j]) == 3) \
                         and right_change_condition[i, j]:
                     right_change_real[i, j] = 1
@@ -169,4 +170,4 @@ class NearExistSwitchRule(SwitchRule):
             road.des_array[i, j] = 0
             road.switch_counter += 1
         else:
-            SwitchRule.switch(i, j, left_change_real, right_change_real)
+            SwitchRule.switch(i, j, road, left_change_real, right_change_real)
