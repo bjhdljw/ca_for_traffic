@@ -2,8 +2,8 @@
 # !/usr/bin/env python
 import random
 
-SIDE_SIDE = 0.5
-MAIN_MAIN = -1
+SIDE_SIDE = 0.8
+MAIN_MAIN = 0.85
 
 
 class Car(object):
@@ -25,6 +25,7 @@ class Car(object):
                 else:
                     road.des_array[lane, 0: car.length] = 4
             elif 5 > lane > 0:
+                pass
                 road.speed_array[lane, 0: car.length] = speed
                 road.position_array[lane, 0: car.length] = 1
                 road.speed_counter[lane, 0: car.length] = 1

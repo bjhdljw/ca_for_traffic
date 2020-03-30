@@ -6,6 +6,7 @@ import random
 import ConfigParser
 import follow
 import switch
+import counter
 
 HAVECAR = 1
 WALL = 3
@@ -350,6 +351,11 @@ class InterweaveRoad(Road):
         self.v_max5 = cp.getint('road', 'v_max5')
         self.v_max6 = cp.getint('road', 'v_max6')
         self.v_max7 = cp.getint('road', 'v_max7')
+        '''统计变量'''
+        self.count_flow = 0
+        self.travel_time = 0
+        self.travel_speed = 0
+        self.count_entrance_flow = 0
 
         # 初始化道路基本信息数组（部分变化）
         self.position_array = np.zeros((self.lanes + 2, self.length))
@@ -401,18 +407,26 @@ class InterweaveRoad(Road):
         left_change_real = np.zeros(self.position_array.shape)
         right_change_real = np.zeros(self.position_array.shape)
 
+        '''更新时间计数计（模板代码）'''
+        counter.Counter.increase_time_counter(self)
         '''加速步、gap计算步为模板代码'''
         follow.FollowRule.accelerate_step(self)
         gap = follow.FollowRule.compute_gap(self)
         '''三个换道模块都非模板代码'''
         for i in range(1, self.lanes + 1):
-            for j in range(self.position_array.shape[1] - 1, -1, -1):
+            for j in range(self.position_array.shape[1] - 1, self.existPosition, -1):
+                switch.InterweaveSwitchRule.switch_condition(i, j, self, right_change_condition, left_change_condition)
+                switch.InterweaveSwitchRule.switch_purpose(i, j, self, gap, right_change_condition, right_change_real,
+                                                          left_change_condition, left_change_real)
+            for j in range(self.existPosition, -1, -1):
                 # switch.SwitchRule.switch_condition(i, j, self, right_change_condition, left_change_condition)
                 # switch.SwitchRule.switch_purpose(i, j, self, gap, right_change_condition, right_change_real, left_change_condition, left_change_real)
                 switch.NearExistSwitchRule.switch_condition(i, j, self, right_change_condition, left_change_condition)
                 switch.NearExistSwitchRule.switch_purpose(i, j, self, gap, right_change_condition, right_change_real, left_change_condition, left_change_real)
         for i in range(1, self.lanes + 1):
-            for j in range(self.position_array.shape[1] - 1, -1, -1):
+            for j in range(self.position_array.shape[1] - 1, self.existPosition, -1):
+                switch.InterweaveSwitchRule.switch(i, j, self, left_change_real, right_change_real)
+            for j in range(self.existPosition, -1, -1):
                 # switch.SwitchRule.switch(i, j, self, left_change_real, right_change_real)
                 switch.NearExistSwitchRule.switch(i, j, self, left_change_real, right_change_real)
         '''gap计算步为模板代码'''
@@ -421,7 +435,9 @@ class InterweaveRoad(Road):
         f = follow.FollowRule()
         for i in range(1, self.lanes + 1):
             f.update_variable()
-            for j in range(self.position_array.shape[1] - 1, -1, -1):
+            for j in range(self.position_array.shape[1] - 1, self.existPosition, -1):
+                follow.EntranceFollowRule.slow_down_step(i, j, gap, self, f)
+            for j in range(self.existPosition, -1, -1):
                 # follow.FollowRule.slow_down_step(i, j, gap, self, f)
                 follow.ExistFollowRule.slow_down_step(i, j, gap, self, f)
         '''随机慢化步、位置更新步为模板代码'''

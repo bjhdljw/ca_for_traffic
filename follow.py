@@ -16,11 +16,13 @@ class FollowRule(object):
         self.count = 1
         self.gap_position_temp2 = sys.maxint
         self.got_exist_first_car = False
+        self.got_entrance_first_car = False
 
     def update_variable(self):
         self.count = 1
         self.gap_position_temp2 = sys.maxint
         self.got_exist_first_car = False
+        self.got_entrance_first_car = False
 
     @staticmethod
     def accelerate_step(road):
@@ -88,13 +90,16 @@ class FollowRule(object):
                 if road.position_array[i, j] == 1:
                     position_next = int(j + road.speed_array[i, j])
                     if position_next != j:
-                        # '''流量&总行程时间&总行程车速统计begin'''
-                        # '''限速区末端为计数点'''
-                        # if j <= road.limit_end <= position_next:
-                        #     road.count_flow += 1
-                        #     road.travel_time += road.speed_counter[i, j]
-                        #     road.travel_speed += (road.limit_end - road.limit_begin) / road.speed_counter[i, j]
-                        # '''流量&总行程时间&总行程车速统计end'''
+                        '''流量&总行程时间&总行程车速统计'''
+                        if j <= road.entrancePosition + 10 <= position_next and 0 < i < 5:
+                            road.count_flow += 1
+                            road.travel_time += road.speed_counter[i, j]
+                            length = road.entrancePosition - road.existPosition + 9
+                            speed_of_single_car = round((length * 7) * 3.6 / road.speed_counter[i, j], 2)
+                            road.travel_speed += speed_of_single_car
+                            if road.des_array[i, j] == 4:
+                                road.count_entrance_flow += 1
+                        '''流量&总行程时间&总行程车速统计end'''
                         if position_next < road.position_array.shape[1]:
                             road.position_array[i, position_next] = 1
                             road.speed_array[i, position_next] = road.speed_array[i, j]
@@ -114,19 +119,19 @@ class ExistFollowRule(FollowRule):
         # 计数器，第1辆车和第2辆车减速步特殊处理：第1辆车不需要减速
         '''减速步begin'''
         if road.position_array[i, j] == 1 or road.position_array[i, j] == 2 or road.position_array[i, j] == WALL:
-            if not self.got_exist_first_car and j == road.existPosition and road.des_array[i, j] == 2:
+            if not self.got_exist_first_car and j == road.existPosition and road.des_array[i, j] == 2 and (i == 1 or i == 2 or i == 3 or i == 4):
                 suppose_next_position = int(road.speed_array[i, j] + j)
                 if road.is_red and suppose_next_position > road.existPosition:
                     temp_speed = min(road.speed_array[i, j], road.existPosition - j)
                     road.speed_array[i, j] = max(temp_speed, 0)
                 self.got_exist_first_car = True
-            if not self.got_exist_first_car and j == road.existPosition - 1 and road.des_array[i, j] == 2:
+            if not self.got_exist_first_car and j == road.existPosition - 1 and road.des_array[i, j] == 2 and (i == 1 or i == 2 or i == 3 or i == 4):
                 suppose_next_position = int(road.speed_array[i, j] + j)
                 if road.is_red and suppose_next_position > road.existPosition:
                     temp_speed = min(road.speed_array[i, j], road.existPosition - j)
                     road.speed_array[i, j] = max(temp_speed, 0)
                 self.got_exist_first_car = True
-            if not self.got_exist_first_car and j == road.existPosition - 2 and road.des_array[i, j] == 2:
+            if not self.got_exist_first_car and j == road.existPosition - 2 and road.des_array[i, j] == 2 and (i == 1 or i == 2 or i == 3 or i == 4):
                 suppose_next_position = int(road.speed_array[i, j] + j)
                 if road.is_red and suppose_next_position > road.existPosition:
                     temp_speed = min(road.speed_array[i, j], road.existPosition - j)
@@ -150,6 +155,52 @@ class ExistFollowRule(FollowRule):
                 d = max(0, gap[i, self.gap_position_temp2] - 1)
                 v_max_before = road.limit_speed if (
                         road.is_limit and road.limit_begin <= self.gap_position_temp2 <= road.limit_end) else road.get_vmax(i)
+                vq = min(v_max_before - 1, d)
+                vq = min(vq, road.speed_array[i, self.gap_position_temp2])
+                road.speed_array[i, j] = min(road.speed_array[i, j], gap[i, j] + vq)
+            self.count += 1
+            self.gap_position_temp2 = j
+        '''减速步end'''
+
+
+class EntranceFollowRule(FollowRule):
+    @staticmethod
+    def slow_down_step(i, j, gap, road, self):
+        """快速路出口前，快速路上欲驶离快速车辆的减速规则"""
+        # 计数器，第1辆车和第2辆车减速步特殊处理：第1辆车不需要减速
+        '''减速步begin'''
+        if road.position_array[i, j] == 1 or road.position_array[i, j] == 2 or road.position_array[i, j] == WALL:
+            if not self.got_entrance_first_car and j == road.entrancePosition and road.des_array[i, j] == 4:
+                suppose_next_position = int(road.speed_array[i, j] + j)
+                if road.is_red and suppose_next_position > road.entrancePosition:
+                    temp_speed = min(road.speed_array[i, j], road.entrancePosition - j)
+                    road.speed_array[i, j] = max(temp_speed, 0)
+                self.got_entrance_first_car = True
+            if not self.got_entrance_first_car and j == road.entrancePosition - 1 and road.des_array[i, j] == 4:
+                suppose_next_position = int(road.speed_array[i, j] + j)
+                if road.is_red and suppose_next_position > road.entrancePosition:
+                    temp_speed = min(road.speed_array[i, j], road.entrancePosition - j)
+                    road.speed_array[i, j] = max(temp_speed, 0)
+                self.got_entrance_first_car = True
+            if road.position_array[i, j] == 2:
+                pass
+            if road.position_array[i, j] == WALL:
+                pass
+            elif self.count == 1 or self.count == 2:
+                temp_speed = min(road.speed_array[i, j], gap[i, j])
+                road.speed_array[i, j] = max(temp_speed, 0)
+            # 如果前方不是车辆，而是障碍物的话，不需要考虑前车速度，使用NaSch模型减速步
+            elif self.gap_position_temp2 < road.position_array.shape[1] \
+                    and (road.position_array[i, self.gap_position_temp2] == 2
+                         or road.position_array[i, self.gap_position_temp2] == WALL):
+                temp_speed = min(road.speed_array[i, j], gap[i, j])
+                road.speed_array[i, j] = max(temp_speed, 0)
+            # 如果前方是车辆的话，为了更快行进，会考虑前车速度，使用VE减速步
+            else:
+                d = max(0, gap[i, self.gap_position_temp2] - 1)
+                v_max_before = road.limit_speed if (
+                    road.is_limit and road.limit_begin <= self.gap_position_temp2 <= road.limit_end) else road.get_vmax(
+                    i)
                 vq = min(v_max_before - 1, d)
                 vq = min(vq, road.speed_array[i, self.gap_position_temp2])
                 road.speed_array[i, j] = min(road.speed_array[i, j], gap[i, j] + vq)
