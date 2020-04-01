@@ -124,7 +124,6 @@ class NearExistSwitchRule(SwitchRule):
             if road.des_array[i, j] == 2:
                 if i == road.block_lane - 1 \
                         and road.position_array[i + 1, j] == 0 \
-                        and road.position_array[i + 2, j] == 0 \
                         and not road.is_red:
                     right_change_condition[i, j] = True
                 if int(road.switch_helper_array[i, j]) == 1 \
@@ -159,10 +158,10 @@ class NearExistSwitchRule(SwitchRule):
                 and road.des_array[i, j] == 2 \
                 and road.position_array[i + 1, j] == 0 \
                 and right_change_real[i, j] == 1:
-            road.position_array[i + 2, j] = 1
-            road.speed_array[i + 2, j] = road.speed_array[i, j]
-            road.speed_counter[i + 2, j] = road.speed_counter[i, j]
-            road.des_array[i + 2, j] = road.des_array[i, j]
+            road.position_array[i + 1, j] = 1
+            road.speed_array[i + 1, j] = road.speed_array[i, j]
+            road.speed_counter[i + 1, j] = road.speed_counter[i, j]
+            road.des_array[i + 1, j] = road.des_array[i, j]
             road.position_array[i, j] = 0
             road.speed_array[i, j] = 0
             road.speed_counter[i, j] = 0

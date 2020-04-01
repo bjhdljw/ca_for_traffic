@@ -91,10 +91,10 @@ class FollowRule(object):
                     position_next = int(j + road.speed_array[i, j])
                     if position_next != j:
                         '''流量&总行程时间&总行程车速统计'''
-                        if j <= road.entrancePosition + 10 <= position_next and 0 < i < 5:
+                        if j <= road.entrancePosition + 10 <= position_next and i == 4:
                             road.count_flow += 1
                             road.travel_time += road.speed_counter[i, j]
-                            length = road.entrancePosition - road.existPosition + 9
+                            length = 10
                             speed_of_single_car = round((length * 7) * 3.6 / road.speed_counter[i, j], 2)
                             road.travel_speed += speed_of_single_car
                             if road.des_array[i, j] == 4:

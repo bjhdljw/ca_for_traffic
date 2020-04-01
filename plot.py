@@ -150,27 +150,28 @@ def road_visualization(road, time_interval, pause_time, cur_data):
         print "当前仿真" + cur_data + "的数据，当前时间步：" + str(t) + "，耗时：" + str(time_end - time_begin)
     plt.ioff()
 
+
 if __name__ == '__main__':
 
-    time_interval = 60
+    time_interval = 30
     pause_time = 0.01
 
-    for i in range(15):
-        if i % 2 == 0 and i >= 4:
-            time_begin = time.time()
-            road_instance = road.InterweaveRoad()
-            road_instance.red_time = i
-            cur_data = 'red-light-time' + str(i)
-            p = Process(target=road_visualization(road_instance, time_interval, pause_time, cur_data), args=(cur_data,))
-            p.start()
-            p.join()
-            time_end = time.time()
-            print "仿真red-light-time=" + str(i) + "数据共耗时：" + str(round((time_end - time_begin) / 60)) + "min"
+    # for i in range(15):
+        # if i % 2 == 0 and i >= 10:
+        #     time_begin = time.time()
+        #     road_instance = road.InterweaveRoad()
+        #     road_instance.red_time = i
+        #     cur_data = 'red-light-time' + str(i)
+        #     p = Process(target=road_visualization(road_instance, time_interval, pause_time, cur_data), args=(cur_data,))
+        #     p.start()
+        #     p.join()
+        #     time_end = time.time()
+        #     print "仿真red-light-time=" + str(i) + "数据共耗时：" + str(round((time_end - time_begin) / 60)) + "min"
 
-    # time_begin = time.time()
-    # road = road.InterweaveRoad()
-    # road_visualization(road, time_interval, pause_time)
-    # time_end = time.time()
-    # print "仿真一组数据共需要：" + str(round((time_end - time_begin) / 60)) + "min"
+    time_begin = time.time()
+    road = road.InterweaveRoad()
+    road_visualization(road, time_interval, pause_time, " no_control")
+    time_end = time.time()
+    print "仿真一组数据共需要：" + str(round((time_end - time_begin) / 60)) + "min"
 
 

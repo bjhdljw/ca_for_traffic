@@ -2,8 +2,8 @@
 # !/usr/bin/env python
 import random
 
-SIDE_SIDE = 0.8
-MAIN_MAIN = 0.85
+SIDE_SIDE = 0.4
+MAIN_MAIN = 1
 
 
 class Car(object):
@@ -19,7 +19,7 @@ class Car(object):
                 pass
                 road.speed_array[lane, 0: car.length] = speed
                 road.position_array[lane, 0: car.length] = 1
-                road.speed_counter[lane, 0: car.length] = 1
+                road.speed_counter[lane, 0: car.length] = 0
                 if random.uniform(0, 1) <= SIDE_SIDE:
                     road.des_array[lane, 0: car.length] = 3
                 else:
@@ -28,7 +28,7 @@ class Car(object):
                 pass
                 road.speed_array[lane, 0: car.length] = speed
                 road.position_array[lane, 0: car.length] = 1
-                road.speed_counter[lane, 0: car.length] = 1
+                road.speed_counter[lane, 0: car.length] = 0
                 if random.uniform(0, 1) < MAIN_MAIN:
                     road.des_array[lane, 0: car.length] = 1
                 else:
