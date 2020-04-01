@@ -383,7 +383,7 @@ class InterweaveRoad(Road):
         self.switch_helper_array[2, :] = 2
         self.switch_helper_array[3, :] = 3
         self.switch_helper_array[4, :] = 4
-        self.switch_helper_array[5, :] = 0
+        self.switch_helper_array[5, :] = 5
         self.switch_helper_array[6, :] = 6
         self.switch_helper_array[7, :] = 7
         self.switch_helper_array[8, :] = 0

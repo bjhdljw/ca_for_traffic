@@ -134,6 +134,8 @@ class NearExistSwitchRule(SwitchRule):
                         change = False
                     right_change_condition[i, j] = change
             else:
+                if i == road.block_lane - 1 and road.position_array[i - 1, j] == 0:
+                    left_change_condition[i, j] = True
                 SwitchRule.switch_condition(i, j, road, right_change_condition, left_change_condition)
 
     @staticmethod
@@ -148,6 +150,8 @@ class NearExistSwitchRule(SwitchRule):
                         and right_change_condition[i, j]:
                     right_change_real[i, j] = 1
             else:
+                if i == road.block_lane - 1 and left_change_real[i, j] == 1:
+                    left_change_condition[i, j] = 1
                 SwitchRule.switch_purpose(i, j, road, gap, right_change_condition, right_change_real,
                                           left_change_condition, left_change_real)
 
@@ -180,7 +184,6 @@ class InterweaveSwitchRule(SwitchRule):
             if road.des_array[i, j] == 4:
                 if i == road.block_lane \
                         and road.position_array[i - 1, j] == 0 \
-                        and road.position_array[i - 2, j] == 0 \
                         and not road.is_red:
                     left_change_condition[i, j] = True
                 if int(road.switch_helper_array[i, j]) == 6 \
@@ -191,6 +194,8 @@ class InterweaveSwitchRule(SwitchRule):
                         change = False
                     left_change_condition[i, j] = change
             else:
+                if i == road.block_lane and road.position_array[i + 1, j] == 0:
+                    right_change_condition[i, j] = True
                 SwitchRule.switch_condition(i, j, road, right_change_condition, left_change_condition)
 
     @staticmethod
@@ -205,6 +210,8 @@ class InterweaveSwitchRule(SwitchRule):
                         and left_change_condition[i, j]:
                     left_change_real[i, j] = 1
             else:
+                if i == road.block_lane and right_change_condition[i, j] == 1:
+                    right_change_real[i, j] = 1
                 SwitchRule.switch_purpose(i, j, road, gap, right_change_condition, right_change_real,
                                           left_change_condition, left_change_real)
 
@@ -227,10 +234,10 @@ class InterweaveSwitchRule(SwitchRule):
                 and road.des_array[i, j] == 4 \
                 and road.position_array[i - 1, j] == 0 \
                 and left_change_real[i, j] == 1:
-            road.position_array[i - 2, j] = 1
-            road.speed_array[i - 2, j] = road.speed_array[i, j]
-            road.speed_counter[i - 2, j] = road.speed_counter[i, j]
-            road.des_array[i - 2, j] = road.des_array[i, j]
+            road.position_array[i - 1, j] = 1
+            road.speed_array[i - 1, j] = road.speed_array[i, j]
+            road.speed_counter[i - 1, j] = road.speed_counter[i, j]
+            road.des_array[i - 1, j] = road.des_array[i, j]
             road.position_array[i, j] = 0
             road.speed_array[i, j] = 0
             road.speed_counter[i, j] = 0

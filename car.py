@@ -2,8 +2,8 @@
 # !/usr/bin/env python
 import random
 
-SIDE_SIDE = 0.4
-MAIN_MAIN = 1
+SIDE_SIDE = 0.5
+MAIN_MAIN = 0.8
 
 
 class Car(object):
