@@ -242,7 +242,18 @@ class InterweaveSwitchRule(SwitchRule):
             road.speed_array[i, j] = 0
             road.speed_counter[i, j] = 0
             road.des_array[i, j] = 0
-            road.switch_counter += 1
+        elif road.position_array[i, j] == 1  \
+            and i == road.block_lane  \
+            and road.des_array[i, j] == 2 \
+            and right_change_real[i, j] == 1:
+            road.position_array[i + 1, j] = 1
+            road.speed_array[i + 1, j] = road.speed_array[i, j]
+            road.speed_counter[i + 1, j] = road.speed_counter[i, j]
+            road.des_array[i + 1, j] = road.des_array[i, j]
+            road.position_array[i, j] = 0
+            road.speed_array[i, j] = 0
+            road.speed_counter[i, j] = 0
+            road.des_array[i, j] = 0
         else:
             SwitchRule.switch(i, j, road, left_change_real, right_change_real)
 

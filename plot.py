@@ -64,12 +64,12 @@ def if_red(t, road):
     """计算当前是否为红灯"""
     temp = int(t % 20)
     if temp < road.red_time:
-        road.position_array[road.block_lane - 1, road.existPosition + 1] = 2
+        # road.position_array[road.block_lane - 1, road.existPosition + 1] = 2
         road.position_array[road.block_lane, road.entrancePosition + 1] = 2
         road.is_red = True
         return True
     else:
-        road.position_array[road.block_lane - 1, road.existPosition + 1] = 3
+        # road.position_array[road.block_lane - 1, road.existPosition + 1] = 3
         road.position_array[road.block_lane, road.entrancePosition + 1] = 3
         road.is_red = False
         return False
@@ -156,22 +156,22 @@ if __name__ == '__main__':
     time_interval = 30
     pause_time = 0.01
 
-    # for i in range(15):
-        # if i % 2 == 0 and i >= 10:
-        #     time_begin = time.time()
-        #     road_instance = road.InterweaveRoad()
-        #     road_instance.red_time = i
-        #     cur_data = 'red-light-time' + str(i)
-        #     p = Process(target=road_visualization(road_instance, time_interval, pause_time, cur_data), args=(cur_data,))
-        #     p.start()
-        #     p.join()
-        #     time_end = time.time()
-        #     print "仿真red-light-time=" + str(i) + "数据共耗时：" + str(round((time_end - time_begin) / 60)) + "min"
+    for i in range(15):
+        if i % 2 == 0 and i >= 6:
+            time_begin = time.time()
+            road_instance = road.InterweaveRoad()
+            road_instance.red_time = i
+            cur_data = 'red-light-time' + str(i)
+            p = Process(target=road_visualization(road_instance, time_interval, pause_time, cur_data), args=(cur_data,))
+            p.start()
+            p.join()
+            time_end = time.time()
+            print "仿真red-light-time=" + str(i) + "数据共耗时：" + str(round((time_end - time_begin) / 60)) + "min"
 
-    time_begin = time.time()
-    road = road.InterweaveRoad()
-    road_visualization(road, time_interval, pause_time, " no_control")
-    time_end = time.time()
-    print "仿真一组数据共需要：" + str(round((time_end - time_begin) / 60)) + "min"
+    # time_begin = time.time()
+    # road = road.InterweaveRoad()
+    # road_visualization(road, time_interval, pause_time, " no_control")
+    # time_end = time.time()
+    # print "仿真一组数据共需要：" + str(round((time_end - time_begin) / 60)) + "min"
 
 

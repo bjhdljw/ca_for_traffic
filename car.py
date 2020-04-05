@@ -3,7 +3,7 @@
 import random
 
 SIDE_SIDE = 0.5
-MAIN_MAIN = 0.8
+MAIN_MAIN = 0.7
 
 
 class Car(object):
@@ -16,7 +16,6 @@ class Car(object):
     def new_car(car, road, speed, lane):
         if road.position_array[lane, 0] == 0:
             if lane == 6 or lane == 7:
-                pass
                 road.speed_array[lane, 0: car.length] = speed
                 road.position_array[lane, 0: car.length] = 1
                 road.speed_counter[lane, 0: car.length] = 0
